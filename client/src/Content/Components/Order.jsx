@@ -31,7 +31,6 @@ export default function Order({ title, data = [] }) {
         dispatch(updateCheckout({ ...order, orderStatus: "Cancelled" }));
         (order.books || []).forEach((cartItem) => {
             if (cartItem.format !== "Ebook") {
-                // FIX: cartItem.book (lowercase) — matches schema field name
                 const book = BookStateData.find((x) => x._id === (cartItem.book?._id || cartItem.book));
                 if (book) dispatch(updateBook({ ...book, stock: book.stock + cartItem.qty }));
             }
@@ -41,6 +40,15 @@ export default function Order({ title, data = [] }) {
     /* ── ebook access gate ── */
     function canAccessEbook(order) {
         return order.paymentStatus === "Done" || order.paymentMode === "COD";
+    }
+
+    /* ── build safe ebook URL ── */
+    function getEbookUrl(url) {
+        if (!url) return '#'
+        // Fix old uploads that went under /image/upload/ instead of /raw/upload/
+        const fixed = url.replace('/image/upload/', '/raw/upload/')
+        // Encode any spaces or special chars in filename
+        return encodeURI(fixed)
     }
 
     /* ── CSS ── */
@@ -138,7 +146,6 @@ export default function Order({ title, data = [] }) {
                             <i className="fa-solid fa-tablet-screen-button" />
                         </div>
                         <div className="op-modal-title">Your E-Book is Ready</div>
-                        {/* FIX: ebookModal is a book object — access .title directly */}
                         <div className="op-modal-book">"{ebookModal.title}"</div>
                         <div className="op-modal-features">
                             <div className="op-modal-feat"><i className="fa-solid fa-infinity" /> Lifetime access</div>
@@ -149,7 +156,7 @@ export default function Order({ title, data = [] }) {
                             Your purchase is confirmed. You can download or read this e-book anytime from your orders page.
                         </div>
                         <a
-                            href={ebookModal.ebookFile}
+                            href={getEbookUrl(ebookModal.ebookFile)}
                             target="_blank"
                             rel="noreferrer"
                             className="op-modal-dl-btn"
@@ -185,11 +192,8 @@ export default function Order({ title, data = [] }) {
                     {data.length ? data.map((order) => {
                         const statusCfg = STATUS_CONFIG[order.orderStatus] || STATUS_CONFIG["Ordered"];
                         const isPaid    = canAccessEbook(order);
+                        const allItems  = order.books || [];
 
-                        // FIX 1: order.books (lowercase) — matches Mongoose schema field
-                        const allItems = order.books || [];
-
-                        // On ebook page show only ebook items; on orders page show all
                         const displayItems = isEbookPage
                             ? allItems.filter(x => x.format === "Ebook")
                             : allItems;
@@ -223,19 +227,14 @@ export default function Order({ title, data = [] }) {
                                 {/* ── Book rows ── */}
                                 <div className="op-card-body">
                                     {displayItems.map((cartItem, i) => {
-                                        const isEbook = cartItem.format === "Ebook";
-
-                                        // FIX 2: cartItem.book (lowercase) — Mongoose populates as lowercase
+                                        const isEbook  = cartItem.format === "Ebook";
                                         const bookData = cartItem.book;
 
                                         return (
                                             <div key={i} className="op-book-row">
                                                 <img
                                                     className="op-book-img"
-                                                    src={bookData?.pic
-                                                        ? `${process.env.NEXT_PUBLIC_SERVER}/${bookData.pic}`
-                                                        : "/img/noimage.jpg"
-                                                    }
+                                                    src={bookData?.pic || "/img/noimage.jpg"}
                                                     alt={bookData?.title}
                                                     onError={e => { e.currentTarget.src = "/img/noimage.jpg"; }}
                                                 />
@@ -250,7 +249,6 @@ export default function Order({ title, data = [] }) {
                                                     {isEbook && (
                                                         <div style={{ marginTop: 6 }}>
                                                             {isPaid && order.orderStatus !== "Cancelled" ? (
-                                                                // FIX 3: pass bookData (lowercase) to the modal
                                                                 <button
                                                                     className="op-ebook-btn"
                                                                     onClick={() => setEbookModal(bookData)}

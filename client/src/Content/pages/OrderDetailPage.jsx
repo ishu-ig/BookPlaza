@@ -281,7 +281,7 @@ export default function OrderDetailPage() {
                                     <div key={i} className="od-book-row">
                                         <img
                                             className="od-book-img"
-                                            src={`${process.env.NEXT_PUBLIC_SERVER}/${cartItem.book?.pic}`}
+                                            src={cartItem.book?.pic}
                                             alt={cartItem.book?.title}
                                         />
                                         <div className="od-book-info">

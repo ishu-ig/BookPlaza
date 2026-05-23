@@ -476,7 +476,7 @@ export default function AdminUpdateBook() {
                             {oldPic && (
                                 <div className="mt-2">
                                     <small className="text-muted">Current cover:</small><br />
-                                    <img src={`${process.env.REACT_APP_BACKEND_SERVER}/${oldPic}`}
+                                    <img src={oldPic}
                                         height={80} alt="current cover" className="rounded border mt-1" />
                                 </div>
                             )}
@@ -505,7 +505,7 @@ export default function AdminUpdateBook() {
                                     <div className="d-flex flex-wrap gap-2 mt-1">
                                         {oldImages.map((img, i) => (
                                             <img key={i}
-                                                src={`${process.env.REACT_APP_BACKEND_SERVER}/${img}`}
+                                                src={img}
                                                 height={60} width={60} alt={`existing-${i}`}
                                                 className="rounded border object-fit-cover" />
                                         ))}
