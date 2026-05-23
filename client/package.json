@@ -1,0 +1,34 @@
+{
+  "name": "client",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "@reduxjs/toolkit": "^2.11.1",
+    "animate.css": "^4.1.1",
+    "axios": "^1.13.2",
+    "framer-motion": "^12.23.26",
+    "lucide-react": "^0.560.0",
+    "next": "16.0.8",
+    "password-validator": "^5.3.0",
+    "react": "19.2.1",
+    "react-dom": "19.2.1",
+    "react-icons": "^5.5.0",
+    "react-razorpay": "^3.0.1",
+    "react-redux": "^9.2.0",
+    "redux-saga": "^1.4.2",
+    "swiper": "^12.0.3",
+    "wow.js": "^1.2.2"
+  },
+  "devDependencies": {
+    "@next/swc-darwin-arm64": "^16.2.6",
+    "babel-plugin-react-compiler": "1.0.0",
+    "eslint": "^9",
+    "eslint-config-next": "16.0.8"
+  }
+}

@@ -1,0 +1,103 @@
+const Cart = require("../models/Cart")
+
+async function createRecord(req, res) {
+    try {
+        let data = new Cart(req.body)
+        await data.save()
+
+        let finalData = await Cart.findOne({ _id: data._id })
+            .populate("user", ["name", "email"])
+            .populate("book", ["title", "author", "pic", "formatPricing"])
+
+        res.send({ result: "Done", data: finalData })
+
+    } catch (error) {
+        let errorMessage = {}
+        error.errors?.user ? errorMessage.user = error.errors.user.message : null
+        error.errors?.book ? errorMessage.book = error.errors.book.message : null
+        error.errors?.format ? errorMessage.format = error.errors.format.message : null
+        error.errors?.qty ? errorMessage.qty = error.errors.qty.message : null
+        error.errors?.total ? errorMessage.total = error.errors.total.message : null
+
+        if (Object.values(errorMessage).length === 0) {
+            console.log(error)   // ← so you can see real errors
+            res.status(500).send({ result: "Fail", reason: "Internal Server Error" })
+        } else {
+            res.status(400).send({ result: "Fail", reason: errorMessage })
+        }
+    }
+}
+
+async function getRecord(req, res) {
+    try {
+        let data = await Cart.find({ user: req.params.userid }).sort({ _id: -1 })
+            .populate("user", ["name", "email"])
+            .populate("book", ["title", "author", "pic", "formatPricing"])
+
+        res.send({ result: "Done", count: data.length, data })
+
+    } catch (error) {
+        console.log(error)
+        res.status(500).send({ result: "Fail", reason: "Internal Server Error" })
+    }
+}
+
+async function getSingleRecord(req, res) {
+    try {
+        let data = await Cart.findOne({ _id: req.params._id })
+            .populate("user", ["name", "email"])
+            .populate("book", ["title", "author", "pic", "formatPricing"])
+
+        if (data)
+            res.send({ result: "Done", data })
+        else
+            res.status(404).send({ result: "Fail", reason: "Record Not Found" })
+
+    } catch (error) {
+        console.log(error)
+        res.status(500).send({ result: "Fail", reason: "Internal Server Error" })
+    }
+}
+
+async function updateRecord(req, res) {
+    try {
+        let data = await Cart.findOne({ _id: req.params._id })
+
+        if (data) {
+            data.qty = req.body.qty ?? data.qty
+            data.total = req.body.total ?? data.total
+            await data.save()
+
+            let finalData = await Cart.findOne({ _id: data._id })
+                .populate("user", ["name", "email"])
+                .populate("book", ["title", "author", "pic", "formatPricing"])
+
+            res.send({ result: "Done", data: finalData })
+        } else {
+            res.status(404).send({ result: "Fail", reason: "Record Not Found" })
+        }
+
+    } catch (error) {
+        console.log(error)
+        res.status(500).send({ result: "Fail", reason: "Internal Server Error" })
+    }
+}
+
+async function deleteRecord(req, res) {
+    try {
+        let data = await Cart.findOne({ _id: req.params._id })
+
+        if (data) {
+            await data.deleteOne()
+            res.send({ result: "Done", data })
+        } else {
+            res.status(404).send({ result: "Fail", reason: "Record Not Found" })
+        }
+
+    } catch (error) {
+        console.log(error)
+        res.status(500).send({ result: "Fail", reason: "Internal Server Error" })
+    }
+}
+
+module.exports = { createRecord, getRecord, getSingleRecord, updateRecord, deleteRecord }
