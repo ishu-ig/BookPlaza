@@ -21,8 +21,7 @@ var whitelist = [
     'http://localhost:3000',
     'http://localhost:8000',
     'http://localhost:4000',
-    'https://shopkaro-sflc.onrender.com',
-    'https://shop-karo-xi.vercel.app'
+   'https://bookplaza.onrender.com'
 ]
 var corsOptions = {
     origin: function (origin, callback) {
