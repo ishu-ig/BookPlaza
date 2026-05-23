@@ -73,8 +73,8 @@ export default function AdminBook() {
                             <tr key={item._id}>
                                 <td>{item._id}</td>
                                 <td>
-                                    <Link to={`${process.env.REACT_APP_BACKEND_SERVER}/${item.pic}`} target="_blank" rel="noreferrer">
-                                        <img src={`${process.env.REACT_APP_BACKEND_SERVER}/${item.pic}`}
+                                    <Link to={item.pic} target="_blank" rel="noreferrer">
+                                        <img src={item.pic }
                                             height={60} width={45} alt={item.title} />
                                     </Link>
                                 </td>

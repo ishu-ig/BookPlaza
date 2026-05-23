@@ -78,8 +78,8 @@ export default function AdminSubcategory() {
                                     <td>{item.name}</td>
                                     <td>{item.category?.name}</td>
                                     <td>
-                                        <Link to={`${process.env.REACT_APP_BACKEND_SERVER}/${item.pic}`} target='_blank' rel='noreferrer'>
-                                            <img src={`${process.env.REACT_APP_BACKEND_SERVER}/${item.pic}`} height={50} width={80} className="rounded shadow-sm" alt="" />
+                                        <Link to={item.pic} target='_blank' rel='noreferrer'>
+                                            <img src={item.pic} height={50} width={80} className="rounded shadow-sm" alt="" />
                                         </Link>
                                     </td>
                                     <td className={item.active ? 'text-success fw-bold' : 'text-danger fw-bold'}>

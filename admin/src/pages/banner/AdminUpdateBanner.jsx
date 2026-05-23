@@ -11,13 +11,13 @@ export default function AdminUpdateBanner() {
     let { _id } = useParams()
     let [data, setData] = useState({
         title: "",
-        image: "",
+        pic: "",
         link: "",
         active: true
     })
     let [error, setError] = useState({
         title: "",
-        image: ""
+        pic: ""
     })
     let [show, setShow] = useState(false)
     let navigate = useNavigate()
@@ -66,7 +66,7 @@ export default function AdminUpdateBanner() {
                 let formData = new FormData()
                 formData.append("_id", data._id)  // use _id for MongoDB
                 formData.append("title", data.title)
-                formData.append("image", data.image)
+                formData.append("pic", data.pic)
                 formData.append("link", data.link || "")
                 formData.append("active", data.active)
                 dispatch(updateBanner(formData))
@@ -113,14 +113,14 @@ export default function AdminUpdateBanner() {
 
                         <div className="row">
                             <div className="col-md-6 mb-3">
-                                <label>Image</label>
+                                <label>pic</label>
                                 <input
                                     type="file"
-                                    name="image"
+                                    name="pic"
                                     onChange={getInputData}
-                                    className={`form-control border-3 ${show && error.image ? 'border-danger' : 'border-primary'}`}
+                                    className={`form-control border-3 ${show && error.pic ? 'border-danger' : 'border-primary'}`}
                                 />
-                                {show && error.image ? <p className='text-danger text-capitalize'>{error.image}</p> : null}
+                                {show && error.pic ? <p className='text-danger text-capitalize'>{error.pic}</p> : null}
                             </div>
 
                             <div className="col-md-6 mb-3">

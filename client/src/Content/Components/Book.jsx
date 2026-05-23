@@ -362,7 +362,7 @@ export default function Book({ title, data }) {
                       <div className="bk-img-wrap">
                         <Link href={`/product/${item._id}`}>
                           <img
-                            src={`${process.env.NEXT_PUBLIC_SERVER}/${item.pic}`}
+                            src={item.pic}
                             alt={item.title}
                           />
                         </Link>

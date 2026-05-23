@@ -65,9 +65,9 @@ export default function AdminBanner() {
                                         <td>{item._id}</td>
                                         <td>{item.title}</td>
                                         <td>
-                                            <Link to={`${process.env.REACT_APP_BACKEND_SERVER}/${item.pic}`} target='_blank' rel='noreferrer'>
-                                                <img src={`${process.env.REACT_APP_BACKEND_SERVER}/${item.pic}`} height={50} width={80} alt="" />
-                                            </Link>
+<Link to={item.pic} target='_blank' rel='noreferrer'>
+    <img src={item.pic} height={50} width={80} alt="" />
+</Link>
                                         </td>
                                         <td>
                                             {item.link

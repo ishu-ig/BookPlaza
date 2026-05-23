@@ -239,7 +239,7 @@ export default function Testimonial() {
                     <div className="d-flex align-items-center gap-3 mt-3">
                       {item.pic ? (
                         <img
-                          src={`${process.env.NEXT_PUBLIC_SERVER}/${item.pic}`}
+                          src={item.pic}
                           alt={item.name}
                           className="testi-avatar"
                         />

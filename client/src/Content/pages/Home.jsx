@@ -72,7 +72,7 @@ export default function Home() {
                             // FIX 4: Only the first item should have "active" class
                             <div key={index} className={`carousel-item ${index === 0 ? "active" : ""}`}>
                                 <img
-                                    src={`${process.env.NEXT_PUBLIC_SERVER}/${item.pic}`}
+                                    src={item.pic}
                     alt={item.name}
                     loading="lazy"
                                     style={{ height: 580 }}

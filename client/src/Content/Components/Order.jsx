@@ -149,7 +149,7 @@ export default function Order({ title, data = [] }) {
                             Your purchase is confirmed. You can download or read this e-book anytime from your orders page.
                         </div>
                         <a
-                            href={`${process.env.NEXT_PUBLIC_SERVER}/${ebookModal.ebookFile || ebookModal.pic}`}
+                            href={ebookModal.ebookFile}
                             target="_blank"
                             rel="noreferrer"
                             className="op-modal-dl-btn"

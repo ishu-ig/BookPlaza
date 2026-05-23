@@ -62,8 +62,8 @@ export default function AdminTestimonial() {
                                         <td>{item._id}</td>
                                         <td>{item.name}</td>
                                         <td>
-                                            <Link to={`${process.env.REACT_APP_BACKEND_SERVER}/${item.pic}`} target='_blank' rel='noreferrer'>
-                                                <img src={`${process.env.REACT_APP_BACKEND_SERVER}/${item.pic}`} height={50} width={80} alt="" />
+                                            <Link to={item.pic} target='_blank' rel='noreferrer'>
+                                                <img src={item.pic} height={50} width={80} alt="" />
                                             </Link>
                                         </td>
                                         <td className={`${item.active ? 'text-success' : 'text-danger'}`}>{item.active ? "Yes" : "No"}</td>

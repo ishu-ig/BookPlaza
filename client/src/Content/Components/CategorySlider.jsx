@@ -536,7 +536,7 @@ export default function CategorySlider({ title, data }) {
                 <SwiperSlide key={item._id || item.id || index}>
                   <Link href={getLinkHref(item)} className="cs-card">
                     <img
-                      src={`${process.env.NEXT_PUBLIC_SERVER}/${item.pic}`}
+                      src={item.pic}
                       alt={item.name}
                       className="cs-card-img"
                       loading="lazy"

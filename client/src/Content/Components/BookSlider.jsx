@@ -310,7 +310,7 @@ export default function BookSlider({ title, data = [] }) {
                         style={{ cursor: "pointer" }}
                       >
                         <img
-                          src={`${process.env.NEXT_PUBLIC_SERVER}/${item.pic}`}
+                          src={item.pic}
                           alt={item.title}
                           loading="lazy"
                           draggable={false}
