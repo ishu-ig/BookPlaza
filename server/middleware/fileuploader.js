@@ -1,24 +1,27 @@
+// server/middleware/fileuploader.js
+
 const multer = require("multer")
+const { CloudinaryStorage } = require("multer-storage-cloudinary")
+const cloudinary = require("../cloudinary")  // ← go up one folder
 
 function createUploader(folder) {
-    const storage = multer.diskStorage({
-        destination: function (req, file, cb) {
-            cb(null, `public/uploads/${folder}`)
+    const storage = new CloudinaryStorage({
+        cloudinary,
+        params: {
+            folder: `bookplaza/${folder}`,
+            allowed_formats: ["jpg", "jpeg", "png", "webp", "pdf"],
+            public_id: (req, file) => `${Date.now()}${file.originalname.split(".")[0]}`,
         },
-        filename: function (req, file, cb) {
-            cb(null, Date.now() + file.originalname)
-        }
     })
-
-    return multer({ storage: storage })
+    return multer({ storage })
 }
 
 module.exports = {
-    categoryUploader: createUploader("category"),
+    categoryUploader:    createUploader("category"),
     subcategoryUploader: createUploader("subcategory"),
-    ebookFileUploader: createUploader("ebookFile"),
+    ebookFileUploader:   createUploader("ebookFile"),
     testimonialUploader: createUploader("testimonial"),
-    bookUploader: createUploader("book"),
-    bannerUploader: createUploader("banner"),
-    userUploader: createUploader("user")
+    bookUploader:        createUploader("book"),
+    bannerUploader:      createUploader("banner"),
+    userUploader:        createUploader("user"),
 }
