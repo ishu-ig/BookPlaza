@@ -794,8 +794,9 @@ export default function BookPage() {
                   {allImages.length ? allImages.map((img, i) => (
                     <SwiperSlide key={i}>
                       <img
-                        src={`${process.env.NEXT_PUBLIC_SERVER}/${img}`}
+                        src={img}
                         alt={data.title}
+                        style={{ height: "100%", width: "100%" }}
                       />
                     </SwiperSlide>
                   )) : (

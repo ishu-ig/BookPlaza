@@ -44,16 +44,16 @@ export default function CategorySlider({ title, data }) {
     onSlideChange: (swiper) => setActiveIndex(swiper.realIndex),
     breakpoints: isPublisher
       ? {
-          320:  { slidesPerView: 1.2, spaceBetween: 14 },
-          480:  { slidesPerView: 1.8, spaceBetween: 16 },
+          320:  { slidesPerView: 2, spaceBetween: 14 },
+          480:  { slidesPerView: 2, spaceBetween: 16 },
           640:  { slidesPerView: 2.2, spaceBetween: 18 },
           768:  { slidesPerView: 2.8, spaceBetween: 20 },
           1024: { slidesPerView: 3.5, spaceBetween: 22 },
           1280: { slidesPerView: 4,   spaceBetween: 24 },
         }
       : {
-          320:  { slidesPerView: 1.2, spaceBetween: 16 },
-          480:  { slidesPerView: 1.8, spaceBetween: 16 },
+          320:  { slidesPerView: 2, spaceBetween: 16 },
+          480:  { slidesPerView: 2, spaceBetween: 16 },
           640:  { slidesPerView: 2.2, spaceBetween: 20 },
           768:  { slidesPerView: 2.8, spaceBetween: 24 },
           1024: { slidesPerView: 3.5, spaceBetween: 24 },
@@ -394,7 +394,7 @@ export default function CategorySlider({ title, data }) {
           .pb-card { min-height: 260px; }
         }
         @media (max-width: 480px) {
-          .cs-card { height: 260px; }
+          .cs-card { height: 230px; }
           .cs-card-name { font-size: 1.15rem; }
         }
       `}</style>

@@ -341,7 +341,7 @@ export default function Profile({ title }) {
                   <img
                     src={
                       data.pic
-                        ? `${process.env.NEXT_PUBLIC_SERVER}/${data.pic}`
+                        ? `${data.pic}`
                         : "/img/noimage.jpg"
                     }
                     alt="Profile"

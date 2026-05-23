@@ -14,10 +14,12 @@ function createUploader(folder) {
             const isPdf = file.mimetype === 'application/pdf'
 
             return {
-                folder: `bookplaza/${folder}`,
-                allowed_formats: ["jpg", "jpeg", "png", "webp", "pdf"],
-                resource_type: isPdf ? 'raw' : 'image',
-                public_id: `${Date.now()}${cleanName.split(".")[0]}`,
+                folder:           `bookplaza/${folder}`,
+                allowed_formats:  ["jpg", "jpeg", "png", "webp", "pdf"],
+                resource_type:    isPdf ? 'raw' : 'image',
+                // Store WITHOUT folder prefix — req.file.filename will be just
+                // the public_id. To delete, pass the full path including folder.
+                public_id:        `${Date.now()}_${cleanName.split(".")[0]}`,
             }
         },
     })

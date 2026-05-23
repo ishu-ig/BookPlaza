@@ -4,7 +4,7 @@ import { usePathname } from 'next/navigation'
 
 const facts = [
   { value: 100,    suffix: "+",    label: "Top Publishers", description: "Curated house names", icon: "❧" },
-  { value: 12000,  suffix: "+",    label: "Titles in Stock", description: "Across every genre", icon: "§" },
+  { value: 12000,  suffix: "+",    label: "Titles in Stock", description: "Across every genre",  icon: "§" },
   { value: 7,      suffix: "-Day", label: "Refund Policy",   description: "Hassle-free returns", icon: "¶" },
   { value: 100000, suffix: "+",    label: "Happy Readers",   description: "And counting",        icon: "✦" },
 ]
@@ -74,9 +74,15 @@ const CSS = `
     padding: 16px 0;
   }
 
+  /* ── Desktop grid ── */
+  .fact-card-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+  }
+
   .fact-card {
     position: relative;
-    padding: 40px 32px;
+    padding: 20px 24px;
     text-align: center;
     border-right: 1px solid rgba(200,146,42,0.2);
     transition: background 0.3s ease;
@@ -140,34 +146,137 @@ const CSS = `
     letter-spacing: 0.04em;
   }
 
-  @media (max-width: 991px) {
-    .fact-card {
-      border-right: none;
-      border-bottom: 1px solid rgba(200,146,42,0.15);
-      padding: 28px 20px;
-    }
-    .fact-card:last-child { border-bottom: none; }
+  /* ── Mobile slider ── */
+  .fact-slider { display: none; position: relative; }
+
+  .fact-slides-wrapper { overflow: hidden; }
+
+  .fact-slides {
+    display: flex;
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform;
+  }
+
+  .fact-slide {
+    min-width: 100%;
+    padding: 24px 32px 16px; 
+    text-align: center;
+    box-sizing: border-box;
+  }
+
+  .fact-slide .fact-glyph {
+    font-size: 1.8rem;
+    color: rgba(200,146,42,0.5);
+    display: block;
+    margin-bottom: 18px;
+    line-height: 1;
+  }
+
+  .fact-slide .fact-number {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 3.6rem;
+    font-weight: 600;
+    line-height: 1;
+    color: #FDFAF5;
+    letter-spacing: -0.02em;
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  .fact-arrows {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-60%);
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    padding: 0 8px;
+    box-sizing: border-box;
+    pointer-events: none;
+  }
+
+  .fact-arrow {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(200,146,42,0.12);
+    border: 1px solid rgba(200,146,42,0.3);
+    color: #C8922A;
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    pointer-events: all;
+    transition: background 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .fact-arrow:hover { background: rgba(200,146,42,0.25); }
+
+  .fact-dots {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    padding: 4px 0 20px;
+  }
+
+  .fact-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: rgba(200,146,42,0.25);
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    transition: background 0.2s, transform 0.2s;
+  }
+  .fact-dot.active {
+    background: #C8922A;
+    transform: scale(1.35);
+  }
+
+  @media (max-width: 767px) {
+    .fact-card-grid { display: none; }
+    .fact-slider    { display: block; }
+    .fact-section {padding : 30px}
   }
 `
 
 function useInjectStyles() {
   useEffect(() => {
-    if (document.getElementById(STYLE_ID)) return   // already injected
+    if (document.getElementById(STYLE_ID)) return
     const tag = document.createElement('style')
     tag.id = STYLE_ID
     tag.textContent = CSS
     document.head.appendChild(tag)
-    // never remove it — it's global, keep it alive across navigations
   }, [])
 }
 
-/* ─── stat card ─── */
+/* ─── desktop stat card ─── */
 function StatCard({ fact, index, inView }) {
-  const count = useCountUp(fact.value, 1600 + index * 100, inView)
+  const count     = useCountUp(fact.value, 1600 + index * 100, inView)
   const formatted = count >= 1000 ? count.toLocaleString() : count
 
   return (
-    <div className="col-lg-3 col-sm-6 fact-card">
+    <div className="fact-card">
+      <span className="fact-glyph" aria-hidden="true">{fact.icon}</span>
+      <span className="fact-number">
+        {formatted}
+        <span className="fact-suffix">{fact.suffix}</span>
+      </span>
+      <span className="fact-label">{fact.label}</span>
+      <span className="fact-desc">{fact.description}</span>
+    </div>
+  )
+}
+
+/* ─── mobile slide card ─── */
+function SlideCard({ fact, inView }) {
+  const count     = useCountUp(fact.value, 1400, inView)
+  const formatted = count >= 1000 ? count.toLocaleString() : count
+
+  return (
+    <div className="fact-slide">
       <span className="fact-glyph" aria-hidden="true">{fact.icon}</span>
       <span className="fact-number">
         {formatted}
@@ -181,17 +290,72 @@ function StatCard({ fact, index, inView }) {
 
 /* ─── main component ─── */
 export default function Fact() {
-  useInjectStyles()   // ← inject CSS into <head> on every mount
+  useInjectStyles()
 
   const sectionRef  = useRef(null)
+  const sliderRef   = useRef(null)
   const observerRef = useRef(null)
-  const [inView, setInView] = useState(false)
-  const pathname = usePathname()
+  const autoRef     = useRef(null)
+  const pathname    = usePathname()
 
+  const [inView, setInView]   = useState(false)
+  const [slide,  setSlide]    = useState(0)
+
+  /* ── go to slide ── */
+  function goTo(n) {
+    const next = (n + facts.length) % facts.length
+    setSlide(next)
+    if (sliderRef.current)
+      sliderRef.current.style.transform = `translateX(-${next * 100}%)`
+    resetAutoPlay()
+  }
+
+  /* ── auto-play ── */
+  function resetAutoPlay() {
+    if (autoRef.current) clearInterval(autoRef.current)
+    autoRef.current = setInterval(() => {
+      setSlide(prev => {
+        const next = (prev + 1) % facts.length
+        if (sliderRef.current)
+          sliderRef.current.style.transform = `translateX(-${next * 100}%)`
+        return next
+      })
+    }, 3000)
+  }
+
+  useEffect(() => {
+    resetAutoPlay()
+    return () => { if (autoRef.current) clearInterval(autoRef.current) }
+  }, [])
+
+  /* ── swipe support ── */
+  useEffect(() => {
+    const wrapper = sliderRef.current?.parentElement
+    if (!wrapper) return
+    let startX = 0
+    const onTouchStart = e => { startX = e.touches[0].clientX }
+    const onTouchEnd   = e => {
+      const diff = startX - e.changedTouches[0].clientX
+      if (Math.abs(diff) > 40)
+        setSlide(prev => {
+          const next = (prev + (diff > 0 ? 1 : -1) + facts.length) % facts.length
+          if (sliderRef.current)
+            sliderRef.current.style.transform = `translateX(-${next * 100}%)`
+          return next
+        })
+    }
+    wrapper.addEventListener('touchstart', onTouchStart, { passive: true })
+    wrapper.addEventListener('touchend',   onTouchEnd,   { passive: true })
+    return () => {
+      wrapper.removeEventListener('touchstart', onTouchStart)
+      wrapper.removeEventListener('touchend',   onTouchEnd)
+    }
+  }, [])
+
+  /* ── intersection observer ── */
   const attachObserver = () => {
     if (observerRef.current) { observerRef.current.disconnect(); observerRef.current = null }
     if (!sectionRef.current) return
-
     observerRef.current = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
@@ -217,11 +381,43 @@ export default function Fact() {
     <section className="fact-section" ref={sectionRef}>
       <div className="fact-watermark" aria-hidden="true">Est. Readers</div>
       <div className="container fact-inner">
-        <div className="row g-0">
-          {facts.map((fact, index) => (
-            <StatCard key={index} fact={fact} index={index} inView={inView} />
+
+        {/* ── Desktop grid ── */}
+        <div className="fact-card-grid">
+          {facts.map((fact, i) => (
+            <StatCard key={i} fact={fact} index={i} inView={inView} />
           ))}
         </div>
+
+        {/* ── Mobile slider ── */}
+        <div className="fact-slider">
+          <div className="fact-slides-wrapper">
+            <div className="fact-slides" ref={sliderRef}>
+              {facts.map((fact, i) => (
+                <SlideCard key={i} fact={fact} inView={inView} />
+              ))}
+            </div>
+          </div>
+
+          {/* Arrows */}
+          <div className="fact-arrows">
+            <button className="fact-arrow" onClick={() => goTo(slide - 1)} aria-label="Previous">&#8249;</button>
+            <button className="fact-arrow" onClick={() => goTo(slide + 1)} aria-label="Next">&#8250;</button>
+          </div>
+
+          {/* Dots */}
+          <div className="fact-dots">
+            {facts.map((_, i) => (
+              <button
+                key={i}
+                className={`fact-dot ${i === slide ? 'active' : ''}`}
+                onClick={() => goTo(i)}
+                aria-label={`Go to slide ${i + 1}`}
+              />
+            ))}
+          </div>
+        </div>
+
       </div>
     </section>
   )
