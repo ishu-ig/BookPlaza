@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, Suspense } from "react";
 import Book from "../Components/Book";
 
 import { getCategory } from "../Redux/ActionCreartors/CategoryActionCreators";
@@ -16,9 +16,6 @@ const STYLE_ID = "shoppage-styles";
 const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap');
 
-  /* ══════════════════════════════════════
-     PAGE SHELL
-  ══════════════════════════════════════ */
   .sp-root {
     background: #F7F0E6;
     min-height: 100vh;
@@ -26,17 +23,12 @@ const CSS = `
     flex-direction: column;
     font-family: 'DM Sans', sans-serif;
   }
-
-  /* ══════════════════════════════════════
-     HERO STRIP
-  ══════════════════════════════════════ */
   .sp-hero {
     background: #1A1208;
     padding: 48px 40px 40px;
     position: relative;
     overflow: hidden;
   }
-  /* Gold radial glow */
   .sp-hero::before {
     content: '';
     position: absolute;
@@ -46,7 +38,6 @@ const CSS = `
     background: radial-gradient(circle, rgba(200,146,42,0.12) 0%, transparent 65%);
     pointer-events: none;
   }
-  /* Faint dot texture */
   .sp-hero::after {
     content: '';
     position: absolute;
@@ -56,7 +47,6 @@ const CSS = `
     pointer-events: none;
   }
   .sp-hero-inner { position: relative; z-index: 1; }
-
   .sp-hero-eyebrow {
     display: inline-flex; align-items: center; gap: 10px;
     font-size: 10px; font-weight: 600;
@@ -81,10 +71,6 @@ const CSS = `
     color: rgba(253,250,245,0.45);
   }
   .sp-hero-meta strong { color: #C8922A; font-weight: 600; }
-
-  /* ══════════════════════════════════════
-     BODY GRID
-  ══════════════════════════════════════ */
   .sp-body {
     display: grid;
     grid-template-columns: 256px 1fr;
@@ -93,10 +79,6 @@ const CSS = `
   @media (max-width: 991px) {
     .sp-body { grid-template-columns: 1fr; }
   }
-
-  /* ══════════════════════════════════════
-     SIDEBAR
-  ══════════════════════════════════════ */
   .sp-sidebar {
     background: #F0E8D8;
     border-right: 1px solid #E0D5C0;
@@ -108,9 +90,7 @@ const CSS = `
     scrollbar-width: none;
   }
   .sp-sidebar::-webkit-scrollbar { display: none; }
-
   .sp-sidebar-section { margin-bottom: 28px; }
-
   .sp-sidebar-head {
     font-family: 'DM Sans', sans-serif;
     font-size: 10px; font-weight: 600;
@@ -124,8 +104,6 @@ const CSS = `
     flex: 1; height: 1px;
     background: linear-gradient(90deg, #D5C9B0, transparent);
   }
-
-  /* filter links */
   .sp-filter-list {
     list-style: none; padding: 0; margin: 0;
     display: flex; flex-direction: column; gap: 2px;
@@ -148,172 +126,89 @@ const CSS = `
     flex-shrink: 0;
     transition: background 0.18s;
   }
-  .sp-filter-link:hover {
-    background: #E8DCC8;
-    color: #1A1208;
-    text-decoration: none;
-  }
+  .sp-filter-link:hover { background: #E8DCC8; color: #1A1208; text-decoration: none; }
   .sp-filter-link:hover::before { background: #C8922A; }
   .sp-filter-link.sp-active {
     background: rgba(200,146,42,0.12);
     border-color: rgba(200,146,42,0.3);
-    color: #1A1208;
-    font-weight: 500;
+    color: #1A1208; font-weight: 500;
   }
   .sp-filter-link.sp-active::before { background: #C8922A; }
-
-  /* sidebar divider */
-  .sp-sdivider {
-    border: none;
-    border-top: 1px solid #E0D5C0;
-    margin: 0 0 28px;
-  }
-
-  /* price inputs */
-  .sp-price-row {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
-    margin-bottom: 10px;
-  }
+  .sp-sdivider { border: none; border-top: 1px solid #E0D5C0; margin: 0 0 28px; }
+  .sp-price-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
   .sp-price-input {
-    width: 100%;
-    background: #FDFAF5;
-    border: 1px solid #D5C9B0;
-    border-radius: 8px;
-    padding: 9px 11px;
-    font-size: 13px; font-weight: 300;
-    color: #1A1208;
-    outline: none;
-    font-family: 'DM Sans', sans-serif;
+    width: 100%; background: #FDFAF5; border: 1px solid #D5C9B0;
+    border-radius: 8px; padding: 9px 11px;
+    font-size: 13px; font-weight: 300; color: #1A1208;
+    outline: none; font-family: 'DM Sans', sans-serif;
     transition: border-color 0.18s, box-shadow 0.18s;
   }
   .sp-price-input::placeholder { color: #B0A090; }
-  .sp-price-input:focus {
-    border-color: #C8922A;
-    box-shadow: 0 0 0 3px rgba(200,146,42,0.1);
-  }
+  .sp-price-input:focus { border-color: #C8922A; box-shadow: 0 0 0 3px rgba(200,146,42,0.1); }
   .sp-price-btn {
-    width: 100%;
-    background: #6B2737;
-    border: none; border-radius: 8px;
-    padding: 10px;
-    font-family: 'DM Sans', sans-serif;
+    width: 100%; background: #6B2737; border: none; border-radius: 8px;
+    padding: 10px; font-family: 'DM Sans', sans-serif;
     font-size: 12px; font-weight: 600;
     letter-spacing: 0.08em; text-transform: uppercase;
-    color: #FDFAF5;
-    cursor: pointer;
+    color: #FDFAF5; cursor: pointer;
     transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
   }
   .sp-price-btn:hover {
-    background: #C8922A;
-    color: #1A1208;
-    transform: translateY(-1px);
-    box-shadow: 0 6px 16px rgba(200,146,42,0.28);
+    background: #C8922A; color: #1A1208;
+    transform: translateY(-1px); box-shadow: 0 6px 16px rgba(200,146,42,0.28);
   }
-
-  /* ══════════════════════════════════════
-     MAIN AREA
-  ══════════════════════════════════════ */
-  .sp-main {
-    background: #F7F0E6;
-    padding: 32px 36px;
-  }
+  .sp-main { background: #F7F0E6; padding: 32px 36px; }
   @media (max-width: 767px) { .sp-main { padding: 20px 16px; } }
-
-  /* ── TOOLBAR ── */
-  .sp-toolbar {
-    display: flex; align-items: center; gap: 10px;
-    margin-bottom: 20px; flex-wrap: wrap;
-  }
-
-  .sp-search-wrap {
-    flex: 1; min-width: 200px;
-    position: relative;
-  }
+  .sp-toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+  .sp-search-wrap { flex: 1; min-width: 200px; position: relative; }
   .sp-search-icon {
     position: absolute; left: 13px; top: 50%;
-    transform: translateY(-50%);
-    color: #B0A090; font-size: 13px;
-    pointer-events: none;
+    transform: translateY(-50%); color: #B0A090; font-size: 13px; pointer-events: none;
   }
   .sp-search-input {
-    width: 100%;
-    background: #FDFAF5;
-    border: 1px solid #D5C9B0;
-    border-radius: 10px;
-    padding: 11px 14px 11px 38px;
-    font-size: 13px; font-weight: 300;
-    color: #1A1208;
-    outline: none;
-    font-family: 'DM Sans', sans-serif;
+    width: 100%; background: #FDFAF5; border: 1px solid #D5C9B0;
+    border-radius: 10px; padding: 11px 14px 11px 38px;
+    font-size: 13px; font-weight: 300; color: #1A1208;
+    outline: none; font-family: 'DM Sans', sans-serif;
     transition: border-color 0.18s, box-shadow 0.18s;
   }
   .sp-search-input::placeholder { color: #B0A090; }
-  .sp-search-input:focus {
-    border-color: #C8922A;
-    box-shadow: 0 0 0 3px rgba(200,146,42,0.1);
-  }
-
+  .sp-search-input:focus { border-color: #C8922A; box-shadow: 0 0 0 3px rgba(200,146,42,0.1); }
   .sp-sort-select {
-    background: #FDFAF5;
-    border: 1px solid #D5C9B0;
-    border-radius: 10px;
-    padding: 11px 36px 11px 14px;
-    font-size: 13px; font-weight: 300;
-    color: #1A1208;
-    font-family: 'DM Sans', sans-serif;
-    outline: none; cursor: pointer;
-    appearance: none; -webkit-appearance: none;
+    background: #FDFAF5; border: 1px solid #D5C9B0; border-radius: 10px;
+    padding: 11px 36px 11px 14px; font-size: 13px; font-weight: 300;
+    color: #1A1208; font-family: 'DM Sans', sans-serif;
+    outline: none; cursor: pointer; appearance: none; -webkit-appearance: none;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238C7B6B' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 12px center;
+    background-repeat: no-repeat; background-position: right 12px center;
     transition: border-color 0.18s;
   }
   .sp-sort-select:focus { border-color: #C8922A; outline: none; }
-
   .sp-result-badge {
     display: inline-flex; align-items: center; gap: 5px;
-    background: rgba(200,146,42,0.1);
-    border: 1px solid rgba(200,146,42,0.25);
-    border-radius: 100px;
-    padding: 5px 13px;
-    font-size: 12px; font-weight: 500;
-    color: #6B2737;
-    white-space: nowrap;
+    background: rgba(200,146,42,0.1); border: 1px solid rgba(200,146,42,0.25);
+    border-radius: 100px; padding: 5px 13px;
+    font-size: 12px; font-weight: 500; color: #6B2737; white-space: nowrap;
   }
-
-  /* ── ACTIVE CHIPS ── */
   .sp-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 22px; }
   .sp-chip {
     display: inline-flex; align-items: center; gap: 6px;
-    font-size: 11px; font-weight: 500;
-    color: #6B2737;
-    background: rgba(107,39,55,0.07);
-    border: 1px solid rgba(107,39,55,0.2);
-    border-radius: 100px;
-    padding: 4px 12px;
-    text-decoration: none;
+    font-size: 11px; font-weight: 500; color: #6B2737;
+    background: rgba(107,39,55,0.07); border: 1px solid rgba(107,39,55,0.2);
+    border-radius: 100px; padding: 4px 12px; text-decoration: none;
     transition: background 0.18s;
   }
   .sp-chip:hover { background: rgba(107,39,55,0.13); text-decoration: none; color: #6B2737; }
   .sp-chip i { font-size: 10px; }
-  .sp-chip-clear {
-    color: #8C7B6B; border-color: #D5C9B0;
-    background: transparent;
-  }
+  .sp-chip-clear { color: #8C7B6B; border-color: #D5C9B0; background: transparent; }
   .sp-chip-clear:hover { background: #E8DCC8; color: #1A1208; }
-
-  /* ── MOBILE FILTER TOGGLE ── */
   .sp-mobile-btn {
-    display: none;
-    align-items: center; gap: 7px;
+    display: none; align-items: center; gap: 7px;
     font-size: 12px; font-weight: 600;
     letter-spacing: 0.07em; text-transform: uppercase;
-    color: #6B5B4A;
-    background: #FDFAF5;
-    border: 1px solid #D5C9B0;
-    border-radius: 10px;
-    padding: 11px 16px;
-    cursor: pointer;
+    color: #6B5B4A; background: #FDFAF5;
+    border: 1px solid #D5C9B0; border-radius: 10px;
+    padding: 11px 16px; cursor: pointer;
     font-family: 'DM Sans', sans-serif;
     transition: border-color 0.18s, color 0.18s;
   }
@@ -323,40 +218,24 @@ const CSS = `
     .sp-sidebar { display: none; height: auto; position: static; border-right: none; border-bottom: 1px solid #E0D5C0; }
     .sp-sidebar.sp-open { display: block; }
   }
-
-  /* ── EMPTY STATE ── */
-  .sp-empty {
-    text-align: center; padding: 80px 0;
-  }
-  .sp-empty-icon {
-    font-size: 44px; color: #D5C9B0;
-    margin-bottom: 16px; display: block;
-  }
-  .sp-empty-title {
-    font-family: 'Playfair Display', Georgia, serif;
-    font-size: 20px; color: #1A1208;
-    margin-bottom: 8px;
-  }
-  .sp-empty-sub {
-    font-size: 14px; font-weight: 300;
-    color: #8C7B6B;
-  }
+  .sp-empty { text-align: center; padding: 80px 0; }
+  .sp-empty-icon { font-size: 44px; color: #D5C9B0; margin-bottom: 16px; display: block; }
+  .sp-empty-title { font-family: 'Playfair Display', Georgia, serif; font-size: 20px; color: #1A1208; margin-bottom: 8px; }
+  .sp-empty-sub { font-size: 14px; font-weight: 300; color: #8C7B6B; }
   .sp-empty-reset {
     display: inline-block; margin-top: 20px;
     font-size: 13px; font-weight: 600;
     letter-spacing: 0.06em; text-transform: uppercase;
-    color: #6B2737;
-    border: 1.5px solid #6B2737;
-    padding: 10px 28px; border-radius: 100px;
-    text-decoration: none;
+    color: #6B2737; border: 1.5px solid #6B2737;
+    padding: 10px 28px; border-radius: 100px; text-decoration: none;
     transition: background 0.2s, color 0.2s;
   }
-  .sp-empty-reset:hover {
-    background: #6B2737; color: #FDFAF5; text-decoration: none;
-  }
+  .sp-empty-reset:hover { background: #6B2737; color: #FDFAF5; text-decoration: none; }
+  .sp-loading { text-align: center; padding: 80px 0; color: #8C7B6B; font-size: 14px; }
 `;
 
-export default function ShopPage() {
+// ── Inner component that uses useSearchParams ─────────────────────────────────
+function ShopContent() {
   const [data,        setData]        = useState([]);
   const [mc,          setMc]          = useState("All");
   const [sc,          setSc]          = useState("All");
@@ -374,7 +253,6 @@ export default function ShopPage() {
   const dispatch     = useDispatch();
   const searchParams = useSearchParams();
 
-  // Inject styles once
   useEffect(() => {
     if (document.getElementById(STYLE_ID)) return;
     const tag = document.createElement("style");
@@ -449,13 +327,10 @@ export default function ShopPage() {
   return (
     <div className="sp-root">
 
-      {/* ── HERO ── */}
       <div className="sp-hero">
         <div className="sp-hero-inner">
           <div className="sp-hero-eyebrow">Browse the store</div>
-          <h1 className="sp-hero-title">
-            Our <em>Collection</em>
-          </h1>
+          <h1 className="sp-hero-title">Our <em>Collection</em></h1>
           <p className="sp-hero-meta">
             <strong>{data.length}</strong> products available
             {mc !== "All" && <> &nbsp;·&nbsp; filtered by <strong>{mc}</strong></>}
@@ -463,13 +338,9 @@ export default function ShopPage() {
         </div>
       </div>
 
-      {/* ── BODY ── */}
       <div className="sp-body">
 
-        {/* ── SIDEBAR ── */}
         <aside className={`sp-sidebar${sidebarOpen ? " sp-open" : ""}`}>
-
-          {/* Category */}
           <div className="sp-sidebar-section">
             <div className="sp-sidebar-head">Category</div>
             <ul className="sp-filter-list">
@@ -492,7 +363,6 @@ export default function ShopPage() {
 
           <hr className="sp-sdivider" />
 
-          {/* Subcategory */}
           <div className="sp-sidebar-section">
             <div className="sp-sidebar-head">Subcategory</div>
             <ul className="sp-filter-list">
@@ -515,7 +385,6 @@ export default function ShopPage() {
 
           <hr className="sp-sdivider" />
 
-          {/* Publisher */}
           <div className="sp-sidebar-section">
             <div className="sp-sidebar-head">Publisher</div>
             <ul className="sp-filter-list">
@@ -538,7 +407,6 @@ export default function ShopPage() {
 
           <hr className="sp-sdivider" />
 
-          {/* Price */}
           <div className="sp-sidebar-section">
             <div className="sp-sidebar-head">Price Range</div>
             <form onSubmit={applyPriceFilter}>
@@ -551,13 +419,9 @@ export default function ShopPage() {
               <button type="submit" className="sp-price-btn">Apply filter</button>
             </form>
           </div>
-
         </aside>
 
-        {/* ── MAIN ── */}
         <main className="sp-main">
-
-          {/* Toolbar */}
           <div className="sp-toolbar">
             <button className="sp-mobile-btn" onClick={() => setSidebarOpen((o) => !o)}>
               <i className="fa-solid fa-sliders" />
@@ -567,8 +431,7 @@ export default function ShopPage() {
             <form onSubmit={postSearch} className="sp-search-wrap">
               <i className="fa-solid fa-magnifying-glass sp-search-icon" />
               <input
-                type="search"
-                value={search}
+                type="search" value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search by name, category, publisher…"
                 className="sp-search-input"
@@ -587,7 +450,6 @@ export default function ShopPage() {
             </span>
           </div>
 
-          {/* Active filter chips */}
           {activeFilters.length > 0 && (
             <div className="sp-chips">
               {activeFilters.map(({ label, href }) => (
@@ -601,7 +463,6 @@ export default function ShopPage() {
             </div>
           )}
 
-          {/* Products or empty */}
           {data.length === 0 ? (
             <div className="sp-empty">
               <i className="fa-regular fa-box-open sp-empty-icon" />
@@ -614,9 +475,21 @@ export default function ShopPage() {
           ) : (
             <Book title="Shop" data={data} />
           )}
-
         </main>
       </div>
     </div>
+  );
+}
+
+// ── Default export wraps ShopContent in Suspense ──────────────────────────────
+export default function ShopPage() {
+  return (
+    <Suspense fallback={
+      <div className="sp-root">
+        <div className="sp-loading">Loading shop…</div>
+      </div>
+    }>
+      <ShopContent />
+    </Suspense>
   );
 }
