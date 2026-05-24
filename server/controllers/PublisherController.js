@@ -1,5 +1,5 @@
 const Publisher = require("../models/Publisher");
-const fs        = require("fs");
+const cloudinary = require("../cloudinary");
 
 // ── Helper: safely delete a file from disk ────────────────────────────────────
 function safeUnlink(filePath) {

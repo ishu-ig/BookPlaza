@@ -1,168 +1,117 @@
-const Subcategory = require("../models/Subcategory")
-const fs = require("fs")
+const Subcategory                     = require("../models/Subcategory");
+const { deleteFromCloudinary }        = require("../cloudinaryMethods");
 
+// ── CREATE ────────────────────────────────────────────────────────────────────
 async function createRecord(req, res) {
     try {
-        let data = new Subcategory(req.body)
-        if (req.file) {
-            data.pic = req.file.path
-        }
-        await data.save()
-        let finalData = await Subcategory.findOne({ _id: data._id })
-            .populate("category", ["name"])
-        res.send({
-            result: "Done",
-            data: finalData
-        })
+        let data = new Subcategory(req.body);
+        if (req.file) data.pic = req.file.path;
+
+        await data.save();
+
+        const finalData = await Subcategory.findById(data._id).populate("category", ["name"]);
+        res.status(201).send({ result: "Done", data: finalData });
+
     } catch (error) {
+        if (req.file) await deleteFromCloudinary(req.file.path);
 
-        try {
-            fs.unlinkSync(req.file.path)
-        } catch (error) { }
+        let errorMessage = {};
+        if (error.keyValue)               errorMessage.name         = "Subcategory Already Exist";
+        if (error.errors?.maincategory)   errorMessage.maincategory = error.errors.maincategory.message;
+        if (error.errors?.name)           errorMessage.name         = error.errors.name.message;
+        if (error.errors?.pic)            errorMessage.pic          = error.errors.pic.message;
 
-        let errorMessage = {}
-        error.keyValue ? errorMessage.name = "Subcategory Already Exist" : null
-        error.errors?.maincategory ? errorMessage.maincategory = error.errors.maincategory.message : null
-        error.errors?.name ? errorMessage.name = error.errors.name.message : null
-        error.errors?.pic ? errorMessage.pic = error.errors.pic.message : null
-
-        if (Object.values(errorMessage).length === 0) {
-            res.status(500).send({
-                result: "Fail",
-                reason: "Internal Server Error"
-            })
+        if (Object.keys(errorMessage).length === 0) {
+            console.error("Subcategory createRecord error:", error);
+            return res.status(500).send({ result: "Fail", reason: "Internal Server Error" });
         }
-        else {
-            res.status(400).send({
-                result: "Fail",
-                reason: errorMessage
-            })
-        }
+        res.status(400).send({ result: "Fail", reason: errorMessage });
     }
 }
 
+// ── GET ALL ───────────────────────────────────────────────────────────────────
 async function getRecord(req, res) {
     try {
-        let data = await Subcategory.find().sort({ _id: -1 })
-            .populate("category", ["name"])
-        res.send({
-            result: "Done",
-            count: data.length,
-            data: data
-        })
+        const data = await Subcategory.find().sort({ _id: -1 }).populate("category", ["name"]);
+        res.send({ result: "Done", count: data.length, data });
+
     } catch (error) {
-        console.log(error)
-        res.status(500).send({
-            result: "Fail",
-            reason: "Internal Server Error"
-        })
+        console.error("Subcategory getRecord error:", error);
+        res.status(500).send({ result: "Fail", reason: "Internal Server Error" });
     }
 }
 
+// ── GET SINGLE ────────────────────────────────────────────────────────────────
 async function getSingleRecord(req, res) {
     try {
-        let data = await Subcategory.findOne({ _id: req.params._id })
-            .populate("category", ["name"])
-        if (data) {
-            res.send({
-                result: "Done",
-                data: data
-            })
+        const data = await Subcategory.findById(req.params._id).populate("category", ["name"]);
+
+        if (!data) {
+            return res.status(404).send({ result: "Fail", reason: "Record Not Found" });
         }
-        else {
-            res.status(404).send({
-                result: "Fail",
-                reason: "Record Not Found"
-            })
-        }
+
+        res.send({ result: "Done", data });
+
     } catch (error) {
-        res.status(500).send({
-            result: "Fail",
-            reason: "Internal Server Error"
-        })
+        console.error("Subcategory getSingleRecord error:", error);
+        res.status(500).send({ result: "Fail", reason: "Internal Server Error" });
     }
 }
 
+// ── UPDATE ────────────────────────────────────────────────────────────────────
 async function updateRecord(req, res) {
     try {
-        let data = await Subcategory.findOne({ _id: req.params._id })
-        if (data) {
-            data.name = req.body.name ?? data.name
-            data.maincategory = req.body.maincategory ?? data.maincategory
-            data.active = req.body.active ?? data.active
-            if (await data.save() && req.file) {
-                try {
-                    fs.unlinkSync(data.pic)
-                } catch (error) { }
-                data.pic = req.file.path
-                await data.save()
-            }
-            let finalData = await Subcategory.findOne({ _id: data._id })
-                .populate("category", ["name"])
-            res.send({
-                result: "Done",
-                data: finalData
-            })
+        const data = await Subcategory.findById(req.params._id);
+
+        if (!data) {
+            return res.status(404).send({ result: "Fail", reason: "Record Not Found" });
         }
-        else {
-            res.status(404).send({
-                result: "Fail",
-                reason: "Record Not Found"
-            })
+
+        data.name         = req.body.name         ?? data.name;
+        data.maincategory = req.body.maincategory ?? data.maincategory;
+        data.active       = req.body.active       ?? data.active;
+
+        if (req.file) {
+            await deleteFromCloudinary(data.pic); // delete old Cloudinary image
+            data.pic = req.file.path;
         }
+
+        await data.save();
+
+        const finalData = await Subcategory.findById(data._id).populate("category", ["name"]);
+        res.send({ result: "Done", data: finalData });
+
     } catch (error) {
-        try {
-            fs.unlinkSync(req.file.path)
-        } catch (error) { }
-        let errorMessage = {}
-        error.keyValue ? errorMessage.name = "Subcategory already Exist" : null
-        console.log(error)
-        if (Object.values(errorMessage).length === 0) {
-            res.status(500).send({
-                result: "Fail",
-                reason: "Internal Server Error"
-            })
+        if (req.file) await deleteFromCloudinary(req.file.path); // clean up new upload
+
+        let errorMessage = {};
+        if (error.keyValue) errorMessage.name = "Subcategory Already Exist";
+
+        if (Object.keys(errorMessage).length === 0) {
+            console.error("Subcategory updateRecord error:", error);
+            return res.status(500).send({ result: "Fail", reason: "Internal Server Error" });
         }
-        else {
-            res.status(400).send({
-                result: "Fail",
-                reason: errorMessage
-            })
-        }
+        res.status(400).send({ result: "Fail", reason: errorMessage });
     }
 }
 
+// ── DELETE ────────────────────────────────────────────────────────────────────
 async function deleteRecord(req, res) {
     try {
-        let data = await Subcategory.findOne({ _id: req.params._id })
-        if (data) {
-            try {
-                fs.unlinkSync(data.pic)
-            } catch (error) { }
-            await data.deleteOne()
-            res.send({
-                result: "Done",
-                data: data
-            })
+        const data = await Subcategory.findById(req.params._id);
+
+        if (!data) {
+            return res.status(404).send({ result: "Fail", reason: "Record Not Found" });
         }
-        else {
-            res.status(404).send({
-                result: "Fail",
-                reason: "Record Not Found"
-            })
-        }
+
+        await deleteFromCloudinary(data.pic); // delete stored image
+        await data.deleteOne();
+        res.send({ result: "Done", data });
+
     } catch (error) {
-        res.status(500).send({
-            result: "Fail",
-            reason: "Internal Server Error"
-        })
+        console.error("Subcategory deleteRecord error:", error);
+        res.status(500).send({ result: "Fail", reason: "Internal Server Error" });
     }
 }
 
-module.exports = {
-    createRecord: createRecord,
-    getRecord: getRecord,
-    getSingleRecord: getSingleRecord,
-    updateRecord: updateRecord,
-    deleteRecord: deleteRecord
-}
+module.exports = { createRecord, getRecord, getSingleRecord, updateRecord, deleteRecord };

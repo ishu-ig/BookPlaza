@@ -1,7 +1,7 @@
-const Book = require("../models/Book");
-const fs   = require("fs");
+const Book                            = require("../models/Book");
+const { deleteFromCloudinary }        = require("../cloudinaryMethods");
 
-// ── Shared helper: extract Mongoose validation messages ───────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 function extractValidationErrors(error) {
     const errorMessage = {};
     Object.keys(error.errors || {}).forEach(key => {
@@ -13,39 +13,26 @@ function extractValidationErrors(error) {
     return errorMessage;
 }
 
-// ── Helper: compute finalPrice from price & discount ─────────────────────────
 function computeFinalPrice(price, discount = 0) {
     return Math.round(price * (1 - discount / 100) * 100) / 100;
 }
 
-// ── Helper: safely delete a file from disk ────────────────────────────────────
-function safeUnlink(filePath) {
-    if (filePath) {
-        try { fs.unlinkSync(filePath); } catch (_) {}
-    }
-}
-
-// ── Helper: get all uploaded file paths from req.files ───────────────────────
-// FIX: now also extracts ebookFilePath
 function getUploadedFiles(req) {
     const files = req.files || {};
     return {
         picPath:       files.pic?.[0]?.path       || null,
         imagesPaths:   (files.images || []).map(f => f.path),
-        ebookFilePath: files.ebookFile?.[0]?.path || null,  // ← FIXED
+        ebookFilePath: files.ebookFile?.[0]?.path || null,
     };
 }
 
-// ── Helper: delete all files uploaded in this request (on error) ──────────────
-// FIX: now also cleans up ebookFile
-function cleanupUploadedFiles(req) {
+async function cleanupUploadedFiles(req) {
     const { picPath, imagesPaths, ebookFilePath } = getUploadedFiles(req);
-    safeUnlink(picPath);
-    imagesPaths.forEach(safeUnlink);
-    safeUnlink(ebookFilePath);  // ← FIXED
+    if (picPath)       await deleteFromCloudinary(picPath);
+    for (const p of imagesPaths) await deleteFromCloudinary(p);
+    if (ebookFilePath) await deleteFromCloudinary(ebookFilePath);
 }
 
-// ── Helper: parse formatPricing from FormData JSON string ────────────────────
 function parseFormatPricing(raw) {
     if (!raw) return [];
     try {
@@ -74,29 +61,21 @@ async function createRecord(req, res) {
 
         const formatPricing = parseFormatPricing(req.body.formatPricing);
         if (!formatPricing.length) {
+            await cleanupUploadedFiles(req);
             return res.status(400).send({ result: "Fail", reason: { formatPricing: "At least one format with pricing is required" } });
         }
 
-        const { picPath, imagesPaths, ebookFilePath } = getUploadedFiles(req);  // ← FIXED
+        const { picPath, imagesPaths, ebookFilePath } = getUploadedFiles(req);
 
         const data = new Book({
-            title,
-            author,
-            isbn,
-            description,
-            category,
-            subcategory,
-            publisher,
-            language,
-            pages,
-            formatPricing,
+            title, author, isbn, description,
+            category, subcategory, publisher,
+            language, pages, formatPricing,
             publishedDate: publishedDate || null,
-            stock,
-            featured,
-            active,
+            stock, featured, active,
             pic:       picPath,
             images:    imagesPaths,
-            ebookFile: ebookFilePath,  // ← FIXED: now actually saved
+            ebookFile: ebookFilePath,
         });
 
         await data.save();
@@ -109,10 +88,11 @@ async function createRecord(req, res) {
         res.status(201).send({ result: "Done", data: finalData });
 
     } catch (error) {
-        cleanupUploadedFiles(req);
+        await cleanupUploadedFiles(req);
+
         const errorMessage = extractValidationErrors(error);
         if (Object.keys(errorMessage).length === 0) {
-            console.error("createRecord error:", error);  // ← FIXED: log before return
+            console.error("Book createRecord error:", error);
             return res.status(500).send({ result: "Fail", reason: "Internal Server Error" });
         }
         res.status(400).send({ result: "Fail", reason: errorMessage });
@@ -147,7 +127,6 @@ async function getRecord(req, res) {
             filter.$text = { $search: req.query.search };
         }
 
-        // Pagination
         const page  = parseInt(req.query.page)  || 1;
         const limit = parseInt(req.query.limit) || 20;
         const skip  = (page - 1) * limit;
@@ -166,7 +145,7 @@ async function getRecord(req, res) {
         res.send({ result: "Done", count: data.length, total, page, data });
 
     } catch (error) {
-        console.error("getRecord error:", error);
+        console.error("Book getRecord error:", error);
         res.status(500).send({ result: "Fail", reason: "Internal Server Error" });
     }
 }
@@ -175,10 +154,10 @@ async function getRecord(req, res) {
 async function getSingleRecord(req, res) {
     try {
         const data = await Book.findById(req.params._id)
-            .populate("category",      ["name"])
-            .populate("subcategory",   ["name"])
-            .populate("publisher",     ["name"])
-            .populate("reviews.user",  ["name", "email"]);
+            .populate("category",     ["name"])
+            .populate("subcategory",  ["name"])
+            .populate("publisher",    ["name"])
+            .populate("reviews.user", ["name", "email"]);
 
         if (!data) {
             return res.status(404).send({ result: "Fail", reason: "Book Not Found" });
@@ -187,7 +166,7 @@ async function getSingleRecord(req, res) {
         res.send({ result: "Done", data });
 
     } catch (error) {
-        console.error("getSingleRecord error:", error);
+        console.error("Book getSingleRecord error:", error);
         res.status(500).send({ result: "Fail", reason: "Internal Server Error" });
     }
 }
@@ -198,6 +177,7 @@ async function updateRecord(req, res) {
         const existing = await Book.findById(req.params._id).lean();
 
         if (!existing) {
+            await cleanupUploadedFiles(req);
             return res.status(404).send({ result: "Fail", reason: "Book Not Found" });
         }
 
@@ -206,10 +186,10 @@ async function updateRecord(req, res) {
             : existing.formatPricing || [];
 
         if (!formatPricing.length) {
+            await cleanupUploadedFiles(req);
             return res.status(400).send({ result: "Fail", reason: { formatPricing: "At least one format with pricing is required" } });
         }
 
-        // FIX: ebookFilePath now comes from the shared helper
         const { picPath, imagesPaths, ebookFilePath } = getUploadedFiles(req);
 
         const updatePayload = {
@@ -229,22 +209,21 @@ async function updateRecord(req, res) {
             active:        req.body.active        ?? existing.active,
             pic:           existing.pic,
             images:        existing.images || [],
-            ebookFile:     ebookFilePath || existing.ebookFile || null,  // ← FIXED
+            ebookFile:     ebookFilePath || existing.ebookFile || null,
         };
 
         if (picPath) {
-            safeUnlink(existing.pic);
+            await deleteFromCloudinary(existing.pic); // delete old cover image
             updatePayload.pic = picPath;
         }
 
         if (imagesPaths.length > 0) {
-            (existing.images || []).forEach(safeUnlink);
+            for (const oldImg of (existing.images || [])) await deleteFromCloudinary(oldImg);
             updatePayload.images = imagesPaths;
         }
 
-        // FIX: delete old ebook file from disk when a new one is uploaded
         if (ebookFilePath && existing.ebookFile) {
-            safeUnlink(existing.ebookFile);
+            await deleteFromCloudinary(existing.ebookFile); // delete old ebook
         }
 
         const finalData = await Book.findByIdAndUpdate(
@@ -259,10 +238,11 @@ async function updateRecord(req, res) {
         res.send({ result: "Done", data: finalData });
 
     } catch (error) {
-        cleanupUploadedFiles(req);
+        await cleanupUploadedFiles(req);
+
         const errorMessage = extractValidationErrors(error);
         if (Object.keys(errorMessage).length === 0) {
-            console.error("updateRecord error:", error);
+            console.error("Book updateRecord error:", error);
             return res.status(500).send({ result: "Fail", reason: "Internal Server Error" });
         }
         res.status(400).send({ result: "Fail", reason: errorMessage });
@@ -278,15 +258,15 @@ async function deleteRecord(req, res) {
             return res.status(404).send({ result: "Fail", reason: "Book Not Found" });
         }
 
-        safeUnlink(data.pic);
-        (data.images || []).forEach(safeUnlink);
-        safeUnlink(data.ebookFile);  // ← FIXED: delete ebook file from disk too
+        await deleteFromCloudinary(data.pic);
+        for (const img of (data.images || [])) await deleteFromCloudinary(img);
+        if (data.ebookFile) await deleteFromCloudinary(data.ebookFile);
 
         await data.deleteOne();
         res.send({ result: "Done", data });
 
     } catch (error) {
-        console.error("deleteRecord error:", error);
+        console.error("Book deleteRecord error:", error);
         res.status(500).send({ result: "Fail", reason: "Internal Server Error" });
     }
 }
@@ -334,7 +314,7 @@ async function addReview(req, res) {
         });
 
     } catch (error) {
-        console.error("addReview error:", error);
+        console.error("Book addReview error:", error);
         res.status(500).send({ result: "Fail", reason: "Internal Server Error" });
     }
 }
@@ -374,7 +354,7 @@ async function deleteReview(req, res) {
         });
 
     } catch (error) {
-        console.error("deleteReview error:", error);
+        console.error("Book deleteReview error:", error);
         res.status(500).send({ result: "Fail", reason: "Internal Server Error" });
     }
 }
@@ -398,18 +378,13 @@ async function getReviews(req, res) {
         });
 
     } catch (error) {
-        console.error("getReviews error:", error);
+        console.error("Book getReviews error:", error);
         res.status(500).send({ result: "Fail", reason: "Internal Server Error" });
     }
 }
 
 module.exports = {
-    createRecord,
-    getRecord,
-    getSingleRecord,
-    updateRecord,
-    deleteRecord,
-    addReview,
-    deleteReview,
-    getReviews,
+    createRecord, getRecord, getSingleRecord,
+    updateRecord, deleteRecord,
+    addReview, deleteReview, getReviews,
 };

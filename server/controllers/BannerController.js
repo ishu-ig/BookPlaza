@@ -1,12 +1,7 @@
-const Banner = require("../models/Banner");
-const fs     = require("fs");
+const Banner                          = require("../models/Banner");
+const { deleteFromCloudinary }        = require("../cloudinaryMethods");
 
-function safeUnlink(filePath) {
-    if (filePath) {
-        try { fs.unlinkSync(filePath); } catch (_) {}
-    }
-}
-
+// ── Helpers ───────────────────────────────────────────────────────────────────
 function extractValidationErrors(error) {
     const errorMessage = {};
     ["title", "pic", "link"].forEach(field => {
@@ -26,7 +21,7 @@ async function createRecord(req, res) {
 
         const data = new Banner({
             title:  req.body.title,
-            pic:  req.file.path,
+            pic:    req.file.path,
             link:   req.body.link ?? null,
             active: req.body.active,
         });
@@ -35,11 +30,11 @@ async function createRecord(req, res) {
         res.status(201).send({ result: "Done", data });
 
     } catch (error) {
-        safeUnlink(req.file?.path);
+        if (req.file) await deleteFromCloudinary(req.file.path);
 
         const errorMessage = extractValidationErrors(error);
         if (Object.keys(errorMessage).length === 0) {
-            console.error("createRecord error:", error);
+            console.error("Banner createRecord error:", error);
             return res.status(500).send({ result: "Fail", reason: "Internal Server Error" });
         }
         res.status(400).send({ result: "Fail", reason: errorMessage });
@@ -56,7 +51,7 @@ async function getRecord(req, res) {
         res.send({ result: "Done", count: data.length, data });
 
     } catch (error) {
-        console.error("getRecord error:", error);
+        console.error("Banner getRecord error:", error);
         res.status(500).send({ result: "Fail", reason: "Internal Server Error" });
     }
 }
@@ -73,7 +68,7 @@ async function getSingleRecord(req, res) {
         res.send({ result: "Done", data });
 
     } catch (error) {
-        console.error("getSingleRecord error:", error);
+        console.error("Banner getSingleRecord error:", error);
         res.status(500).send({ result: "Fail", reason: "Internal Server Error" });
     }
 }
@@ -92,7 +87,7 @@ async function updateRecord(req, res) {
         data.active = req.body.active ?? data.active;
 
         if (req.file) {
-            safeUnlink(data.pic);
+            await deleteFromCloudinary(data.pic); // delete old Cloudinary image
             data.pic = req.file.path;
         }
 
@@ -100,11 +95,11 @@ async function updateRecord(req, res) {
         res.send({ result: "Done", data });
 
     } catch (error) {
-        safeUnlink(req.file?.path);
+        if (req.file) await deleteFromCloudinary(req.file.path); // clean up new upload
 
         const errorMessage = extractValidationErrors(error);
         if (Object.keys(errorMessage).length === 0) {
-            console.error("updateRecord error:", error);
+            console.error("Banner updateRecord error:", error);
             return res.status(500).send({ result: "Fail", reason: "Internal Server Error" });
         }
         res.status(400).send({ result: "Fail", reason: errorMessage });
@@ -120,20 +115,14 @@ async function deleteRecord(req, res) {
             return res.status(404).send({ result: "Fail", reason: "Banner Not Found" });
         }
 
-        safeUnlink(data.pic);
+        await deleteFromCloudinary(data.pic); // delete stored image
         await data.deleteOne();
         res.send({ result: "Done", data });
 
     } catch (error) {
-        console.error("deleteRecord error:", error);
+        console.error("Banner deleteRecord error:", error);
         res.status(500).send({ result: "Fail", reason: "Internal Server Error" });
     }
 }
 
-module.exports = {
-    createRecord,
-    getRecord,
-    getSingleRecord,
-    updateRecord,
-    deleteRecord,
-};
+module.exports = { createRecord, getRecord, getSingleRecord, updateRecord, deleteRecord };
