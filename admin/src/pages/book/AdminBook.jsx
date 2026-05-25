@@ -74,7 +74,7 @@ export default function AdminBook() {
                                 <td>{item._id}</td>
                                 <td>
                                     <Link to={item.pic} target="_blank" rel="noreferrer">
-                                        <img src={item.pic }
+                                        <img src={item.pic}
                                             height={60} width={45} alt={item.title} />
                                     </Link>
                                 </td>
