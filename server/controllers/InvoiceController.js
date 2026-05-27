@@ -1,8 +1,9 @@
-const fs          = require("fs");
-const path        = require("path");
-const PDFDocument = require("pdfkit");
-const Checkout    = require("../models/Checkout");
-const Invoice     = require("../models/Invoice");
+const fs             = require("fs");
+const path           = require("path");
+const { randomUUID } = require("crypto");
+const PDFDocument    = require("pdfkit");
+const Checkout       = require("../models/Checkout");
+const Invoice        = require("../models/Invoice");
 
 // ── Design Tokens ─────────────────────────────────────────────────────────────
 const C = {
@@ -15,8 +16,6 @@ const C = {
     amber:      "#b45309",
     amberBg:    "#fef3c7",
     amberDark:  "#633806",
-    blueBg:     "#e6f1fb",
-    blueDark:   "#0c447c",
     ink:        "#1a2634",
     inkMid:     "#4a5e70",
     inkLight:   "#8096a8",
@@ -167,7 +166,7 @@ function buildPDF(order, invoiceNumber) {
            .text("Payment Status", cx + 12, iy, { width: 88 });
         const isPaid = /paid|success|done/i.test(payStatus);
         pill(doc, cx + 106, iy, payStatus,
-            isPaid ? C.tealBg  : C.amberBg,
+            isPaid ? C.tealBg   : C.amberBg,
             isPaid ? C.tealDark : C.amberDark);
 
         // ITEMS TABLE
@@ -186,11 +185,11 @@ function buildPDF(order, invoiceNumber) {
         rect(doc, M, y, tableW, hh, C.brand);
         doc.fontSize(F.tiny).font("Helvetica-Bold").fillColor("rgba(255,255,255,0.8)");
         [
-            ["#",       col.no,    "center"],
-            ["PRODUCT", col.name,  "left"  ],
-            ["QTY",     col.qty,   "center"],
-            ["PRICE",   col.price, "right" ],
-            ["TOTAL",   col.total, "right" ],
+            ["#",     col.no,    "center"],
+            ["BOOK",  col.name,  "left"  ],
+            ["QTY",   col.qty,   "center"],
+            ["PRICE", col.price, "right" ],
+            ["TOTAL", col.total, "right" ],
         ].forEach(([label, c, align]) =>
             doc.text(label, c.x, y + 7, { width: c.w, align, characterSpacing: 0.8 })
         );
@@ -198,8 +197,8 @@ function buildPDF(order, invoiceNumber) {
 
         products.forEach((p, i) => {
             const rh        = 22;
-            const name      = p.name || "—";
-            const qty       = p.qty  || 1;
+            const name      = p.name  || "—";
+            const qty       = p.qty   || 1;
             const price     = Number(p.price || 0);
             const lineTotal = Number(p.total || price * qty);
 
@@ -212,9 +211,9 @@ function buildPDF(order, invoiceNumber) {
                .text(name, col.name.x, y + 6, { width: col.name.w, ellipsis: true });
             doc.font("Helvetica").fillColor(C.inkMid)
                .text(String(qty),         col.qty.x,   y + 6, { width: col.qty.w,   align: "center" })
-               .text(currency(price),     col.price.x, y + 6, { width: col.price.w, align: "right" });
+               .text(currency(price),     col.price.x, y + 6, { width: col.price.w, align: "right"  });
             doc.font("Helvetica-Bold").fillColor(C.ink)
-               .text(currency(lineTotal), col.total.x, y + 6, { width: col.total.w, align: "right" });
+               .text(currency(lineTotal), col.total.x, y + 6, { width: col.total.w, align: "right"  });
             y += rh;
         });
 
@@ -237,7 +236,7 @@ function buildPDF(order, invoiceNumber) {
         }
 
         totRow("Subtotal",         currency(subtotal));
-        totRow("Shipping charges", currency(shipping));
+        totRow("Shipping Charges", currency(shipping));
         hRule(doc, y, totX, M + tableW, C.border, 0.5);
         y += 8;
 
@@ -288,17 +287,16 @@ async function createInvoice(req, res) {
         if (existing) return res.json({ result: "Done", invoice: { invoiceNumber: existing.invoiceNumber } });
 
         const datePart      = new Date().toISOString().slice(0, 10).replace(/-/g, "");
-        const rand          = Math.floor(1000 + Math.random() * 9000);
-        const invoiceNumber = `INV-${datePart}-${rand}`;
+        const invoiceNumber = `INV-${datePart}-${randomUUID().slice(0, 8).toUpperCase()}`;
 
         // Remap books → products shape that buildPDF expects
         const normalizedOrder = {
             ...order.toObject(),
             products: (order.books || []).map(item => ({
-                name:  item.book?.title  || "—",
-                qty:   item.qty          || 1,
-                price: item.qty > 0 ? (item.total / item.qty) : 0,
-                total: item.total        || 0,
+                name:  item.book?.title || "—",
+                qty:   item.qty         || 1,
+                price: item.price || (item.qty > 0 ? item.total / item.qty : 0),
+                total: item.total       || 0,
             })),
         };
 

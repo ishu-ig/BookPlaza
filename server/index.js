@@ -63,9 +63,6 @@ nextApp.prepare().then(() => {
     // ── Middleware ────────────────────────────────────────────────────────────
     app.use(cors(corsOptions))
     app.use(express.json())
-    app.use("/public",   express.static("public"))
-    app.use("/uploads",  express.static(path.join(__dirname, "public/uploads")))
-    app.use("/invoices", express.static(path.join(__dirname, "public/invoices")))
 
     // ── API Routes ────────────────────────────────────────────────────────────
     app.use("/api", Router)
