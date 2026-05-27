@@ -36,25 +36,41 @@ export default function OrderDetailPage() {
         }
     }, [CheckoutStateData, id]);
 
-    const generateInvoice = async () => {
-        try {
-            let response = await fetch(`${process.env.NEXT_PUBLIC_SERVER}/api/invoice/generate`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ orderId: id }),
-            });
-            const data = await response.json();
-            if (response.ok && data.invoice?.invoiceNumber) {
-                downloadInvoice(data.invoice.invoiceNumber);
-            } else {
-                alert('Invoice generation failed.');
-            }
-        } catch (err) {
-            console.error('Error generating invoice:', err);
-            alert('Error generating invoice.');
-        }
-    };
+const [invoiceLoading, setInvoiceLoading] = useState(false);
 
+const generateInvoice = async () => {
+    if (invoiceLoading) return;
+    setInvoiceLoading(true);
+    try {
+        const response = await fetch(
+            `${process.env.NEXT_PUBLIC_SERVER}/api/invoice/generate`,
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    authorization: localStorage.getItem('token'),
+                },
+                body: JSON.stringify({ orderId: order._id }),  // fixed: was _id
+            }
+        );
+
+        if (!response.ok) {
+            const data = await response.json();
+            alert(data.reason || 'Invoice generation failed.');
+            return;
+        }
+
+        const blob = await response.blob();
+        const url  = window.URL.createObjectURL(blob);
+        window.open(url, '_blank');
+        setTimeout(() => window.URL.revokeObjectURL(url), 10000);
+    } catch (err) {
+        console.error('Invoice error:', err);
+        alert('Could not connect to server. Please try again.');
+    } finally {
+        setInvoiceLoading(false);
+    }
+};
     const downloadInvoice = (invoiceNumber) => {
         window.open(`${process.env.NEXT_PUBLIC_SERVER}/invoices/${invoiceNumber}.pdf`, '_blank');
     };

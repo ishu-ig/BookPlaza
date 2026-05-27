@@ -21,7 +21,8 @@ var whitelist = [
     'http://localhost:3000',
     'http://localhost:8000',
     'http://localhost:4000',
-   'https://bookplaza.onrender.com'
+   'https://bookplaza.onrender.com',
+   'https://book-plaza-theta.vercel.app'
 ]
 var corsOptions = {
     origin: function (origin, callback) {

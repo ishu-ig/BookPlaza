@@ -1,5 +1,3 @@
-const fs             = require("fs");
-const path           = require("path");
 const { randomUUID } = require("crypto");
 const PDFDocument    = require("pdfkit");
 const Checkout       = require("../models/Checkout");
@@ -61,15 +59,9 @@ function pill(doc, x, y, label, bgColor, textColor) {
     doc.fillColor(textColor).text(label, x + 7, y + 2, { lineBreak: false });
 }
 
-// ── PDF Builder ───────────────────────────────────────────────────────────────
-function buildPDF(order, invoiceNumber) {
+// ── PDF Builder — streams directly to res instead of writing to disk ──────────
+function buildPDF(order, invoiceNumber, res) {
     return new Promise((resolve, reject) => {
-        const invoicesDir = path.join(__dirname, "../public/invoices");
-        if (!fs.existsSync(invoicesDir)) fs.mkdirSync(invoicesDir, { recursive: true });
-
-        const filePath = path.join(invoicesDir, `${invoiceNumber}.pdf`);
-        const stream   = fs.createWriteStream(filePath);
-
         const customer    = order.user        || {};
         const products    = Array.isArray(order.products) ? order.products : [];
         const subtotal    = Number(order.subtotal   || 0);
@@ -86,8 +78,15 @@ function buildPDF(order, invoiceNumber) {
         const siteEmail   = process.env.SITE_EMAIL   || "support@myshop.com";
         const sitePhone   = process.env.SITE_PHONE   || "+91 98765 43210";
 
+        // ── Stream directly to HTTP response ──────────────────────────────
+        res.setHeader("Content-Type",        "application/pdf");
+        res.setHeader("Content-Disposition", `inline; filename="${invoiceNumber}.pdf"`);
+
         const doc = new PDFDocument({ margin: 0, size: "A4" });
-        doc.pipe(stream);
+        doc.pipe(res);
+
+        doc.on("error", reject);
+        res.on("error", reject);
 
         const W = 595, M = 40;
 
@@ -98,7 +97,7 @@ function buildPDF(order, invoiceNumber) {
         rect(doc, 0, 0, W, 118, C.brand);
         doc.save().opacity(0.05);
         doc.circle(480, -20, 100).fill(C.white);
-        doc.circle(520, 80, 70).fill(C.white);
+        doc.circle(520, 80,  70).fill(C.white);
         doc.restore();
 
         doc.fontSize(F.h1).font("Helvetica-Bold").fillColor(C.white).text(siteName, M, 26);
@@ -265,8 +264,8 @@ function buildPDF(order, invoiceNumber) {
            );
 
         doc.end();
-        stream.on("finish", () => resolve(filePath));
-        stream.on("error",  reject);
+        // resolve after the response stream finishes
+        res.on("finish", resolve);
     });
 }
 
@@ -283,11 +282,21 @@ async function createInvoice(req, res) {
 
         if (!order) return res.status(404).json({ result: "Fail", reason: "Order not found." });
 
+        // Reuse existing invoice number so repeated requests get the same numbering
+        let invoiceNumber;
         const existing = await Invoice.findOne({ order: orderId });
-        if (existing) return res.json({ result: "Done", invoice: { invoiceNumber: existing.invoiceNumber } });
+        if (existing) {
+            invoiceNumber = existing.invoiceNumber;
+        } else {
+            const datePart = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+            invoiceNumber  = `INV-${datePart}-${require("crypto").randomUUID().slice(0, 8).toUpperCase()}`;
 
-        const datePart      = new Date().toISOString().slice(0, 10).replace(/-/g, "");
-        const invoiceNumber = `INV-${datePart}-${randomUUID().slice(0, 8).toUpperCase()}`;
+            await new Invoice({
+                user:  order.user?._id || order.user,
+                order: order._id,
+                invoiceNumber,
+            }).save();
+        }
 
         // Remap books → products shape that buildPDF expects
         const normalizedOrder = {
@@ -300,19 +309,15 @@ async function createInvoice(req, res) {
             })),
         };
 
-        await buildPDF(normalizedOrder, invoiceNumber);
-
-        await new Invoice({
-            user:  order.user?._id || order.user,
-            order: order._id,
-            invoiceNumber,
-        }).save();
-
-        res.json({ result: "Done", invoice: { invoiceNumber } });
+        // Stream PDF directly — no disk write, works on any host
+        await buildPDF(normalizedOrder, invoiceNumber, res);
 
     } catch (error) {
         console.error("Invoice createInvoice error:", error);
-        res.status(500).json({ result: "Fail", reason: error.message || "Failed to generate invoice." });
+        // Only send JSON error if headers haven't been sent yet (PDF stream not started)
+        if (!res.headersSent) {
+            res.status(500).json({ result: "Fail", reason: error.message || "Failed to generate invoice." });
+        }
     }
 }
 
