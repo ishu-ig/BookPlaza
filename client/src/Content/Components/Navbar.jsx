@@ -77,7 +77,7 @@ export default function Navbar() {
 
         /* ── Main nav ── */
         .sk-nav {
-          position: sticky;
+          position: fixed;
           top: 0;
           z-index: 1000;
           background: var(--cream);
