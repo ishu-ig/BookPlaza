@@ -639,7 +639,7 @@ export default function Navbar() {
       {/* Sidebar */}
       <div className={`sk-sidebar${sidebarOpen ? " open" : ""}`}>
         <div className="sk-sidebar-head">
-          <span className="sk-sidebar-logo">Shop<span>Karo</span></span>
+          <span className="sk-sidebar-logo">Book<span>Plaza</span></span>
           <button className="sk-sidebar-close" onClick={() => setSidebarOpen(false)}>
             <i className="fas fa-times" />
           </button>
