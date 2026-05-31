@@ -533,7 +533,7 @@ export default function Navbar() {
       `}</style>
 
       {/* Announcement bar */}
-      <div className="sk-announce">
+      <div className="sk-announce fixed-top">
         <em>Free shipping</em> on orders above ₹499 &nbsp;·&nbsp; 7-day hassle-free returns
       </div>
 
