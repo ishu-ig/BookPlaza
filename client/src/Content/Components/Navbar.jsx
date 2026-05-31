@@ -1,4 +1,4 @@
-"use client"
+"use client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState, useRef } from "react";
@@ -35,7 +35,9 @@ export default function Navbar() {
 
   useEffect(() => {
     document.body.style.overflow = sidebarOpen ? "hidden" : "";
-    return () => { document.body.style.overflow = ""; };
+    return () => {
+      document.body.style.overflow = "";
+    };
   }, [sidebarOpen]);
 
   function logout() {
@@ -61,6 +63,11 @@ export default function Navbar() {
 
         /* ── Announcement bar ── */
         .sk-announce {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          z-index: 1001;
           background: var(--burgundy);
           color: var(--cream);
           text-align: center;
@@ -77,9 +84,11 @@ export default function Navbar() {
 
         /* ── Main nav ── */
         .sk-nav {
-          position: fixed;
-          top: 0;
-          z-index: 1000;
+           position: fixed;
+           top: 36px;    /* ← height of announce bar */
+           left: 0;
+           width: 100%;
+           z-index: 1000;
           background: var(--cream);
           border-bottom: 1px solid rgba(107,39,55,0.12);
           transition: box-shadow 0.3s ease, background 0.3s ease;
@@ -522,45 +531,76 @@ export default function Navbar() {
 
       {/* Announcement bar */}
       <div className="sk-announce">
-        <em>Free shipping</em> on orders above ₹499 &nbsp;·&nbsp; 7-day hassle-free returns
+        <em>Free shipping</em> on orders above ₹499 &nbsp;·&nbsp; 7-day
+        hassle-free returns
       </div>
 
       {/* Main nav */}
       <nav className={`sk-nav${scrolled ? " scrolled" : ""}`}>
         <div className="sk-nav-inner">
-
           {/* Logo */}
           <Link href="/" className="sk-logo">
-            <span className="sk-logo-main">Book<span>Plaza</span></span>
+            <span className="sk-logo-main">
+              Book<span>Plaza</span>
+            </span>
             <span className="sk-logo-sub">Bookstore</span>
           </Link>
 
           {/* Desktop links */}
           <div className="sk-links d-none d-lg-flex">
-            <Link href="/" className="sk-link">Home</Link>
-            <Link href="/about" className="sk-link">About</Link>
-            <Link href="/shop" className="sk-link">Shop</Link>
-            <Link href="/feature" className="sk-link">Features</Link>
-            <Link href="/testimonial" className="sk-link">Reviews</Link>
-            <Link href="/contactus" className="sk-link">Contact</Link>
+            <Link href="/" className="sk-link">
+              Home
+            </Link>
+            <Link href="/about" className="sk-link">
+              About
+            </Link>
+            <Link href="/shop" className="sk-link">
+              Shop
+            </Link>
+            <Link href="/feature" className="sk-link">
+              Features
+            </Link>
+            <Link href="/testimonial" className="sk-link">
+              Reviews
+            </Link>
+            <Link href="/contactus" className="sk-link">
+              Contact
+            </Link>
           </div>
 
           {/* Actions */}
           <div className="sk-actions">
             {/* Search */}
-            <button className="sk-action-btn" onClick={() => setSearchOpen(true)} aria-label="Search">
+            <button
+              className="sk-action-btn"
+              onClick={() => setSearchOpen(true)}
+              aria-label="Search"
+            >
               <i className="fas fa-search" style={{ fontSize: "0.9rem" }} />
             </button>
 
             {/* Wishlist */}
-            <Link href="/wishlist" className="sk-action-btn d-none d-sm-flex" aria-label="Wishlist">
+            <Link
+              href="/wishlist"
+              className="sk-action-btn d-none d-sm-flex"
+              aria-label="Wishlist"
+            >
               <i className="far fa-heart" style={{ fontSize: "0.95rem" }} />
-              {wishlistCount > 0 && <span className="sk-badge">{wishlistCount}</span>}
+              {wishlistCount > 0 && (
+                <span className="sk-badge">{wishlistCount}</span>
+              )}
             </Link>
 
             {/* Cart */}
-            <Link href="/cart" className="sk-action-btn d-none d-sm-flex" aria-label="Cart">
-              <i className="fas fa-shopping-bag" style={{ fontSize: "0.9rem" }} />
+            <Link
+              href="/cart"
+              className="sk-action-btn d-none d-sm-flex"
+              aria-label="Cart"
+            >
+              <i
+                className="fas fa-shopping-bag"
+                style={{ fontSize: "0.9rem" }}
+              />
               {cartCount > 0 && <span className="sk-badge">{cartCount}</span>}
             </Link>
 
@@ -612,35 +652,52 @@ export default function Navbar() {
       </nav>
 
       {/* Search overlay */}
-      <div className={`sk-search-overlay${searchOpen ? " open" : ""}`} onClick={() => setSearchOpen(false)}>
-        <div className="sk-search-box" onClick={e => e.stopPropagation()}>
-          <i className="fas fa-search" style={{ color: "var(--gold)", fontSize: "1rem" }} />
+      <div
+        className={`sk-search-overlay${searchOpen ? " open" : ""}`}
+        onClick={() => setSearchOpen(false)}
+      >
+        <div className="sk-search-box" onClick={(e) => e.stopPropagation()}>
+          <i
+            className="fas fa-search"
+            style={{ color: "var(--gold)", fontSize: "1rem" }}
+          />
           <input
             ref={searchRef}
             className="sk-search-input"
             placeholder="Search books, authors, genres…"
             value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            onKeyDown={e => {
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(e) => {
               if (e.key === "Enter") {
                 window.location.href = `/shop?q=${searchQuery}`;
               }
             }}
           />
-          <button className="sk-search-close" onClick={() => setSearchOpen(false)}>
+          <button
+            className="sk-search-close"
+            onClick={() => setSearchOpen(false)}
+          >
             <i className="fas fa-times" />
           </button>
         </div>
       </div>
 
       {/* Sidebar overlay */}
-      <div className={`sk-sidebar-overlay${sidebarOpen ? " open" : ""}`} onClick={() => setSidebarOpen(false)} />
+      <div
+        className={`sk-sidebar-overlay${sidebarOpen ? " open" : ""}`}
+        onClick={() => setSidebarOpen(false)}
+      />
 
       {/* Sidebar */}
       <div className={`sk-sidebar${sidebarOpen ? " open" : ""}`}>
         <div className="sk-sidebar-head">
-          <span className="sk-sidebar-logo">Book<span>Plaza</span></span>
-          <button className="sk-sidebar-close" onClick={() => setSidebarOpen(false)}>
+          <span className="sk-sidebar-logo">
+            Book<span>Plaza</span>
+          </span>
+          <button
+            className="sk-sidebar-close"
+            onClick={() => setSidebarOpen(false)}
+          >
             <i className="fas fa-times" />
           </button>
         </div>
@@ -657,10 +714,19 @@ export default function Navbar() {
             { href: "/about", icon: "fas fa-book-open", label: "About" },
             { href: "/shop", icon: "fas fa-store", label: "Shop" },
             { href: "/feature", icon: "fas fa-star", label: "Features" },
-            { href: "/testimonial", icon: "fas fa-quote-left", label: "Reviews" },
+            {
+              href: "/testimonial",
+              icon: "fas fa-quote-left",
+              label: "Reviews",
+            },
             { href: "/contactus", icon: "fas fa-envelope", label: "Contact" },
           ].map(({ href, icon, label }) => (
-            <Link key={href} href={href} className="sk-sidebar-link" onClick={() => setSidebarOpen(false)}>
+            <Link
+              key={href}
+              href={href}
+              className="sk-sidebar-link"
+              onClick={() => setSidebarOpen(false)}
+            >
               <i className={icon} /> {label}
             </Link>
           ))}
@@ -670,29 +736,68 @@ export default function Navbar() {
             { href: "/profile", icon: "far fa-user", label: "My Profile" },
             { href: "/order", icon: "fas fa-box", label: "My Orders" },
             { href: "/ebook", icon: "fas fa-box", label: "My E-Book" },
-            { href: "/wishlist", icon: "far fa-heart", label: "Wishlist", badge: wishlistCount },
-            { href: "/cart", icon: "fas fa-shopping-bag", label: "Cart", badge: cartCount },
+            {
+              href: "/wishlist",
+              icon: "far fa-heart",
+              label: "Wishlist",
+              badge: wishlistCount,
+            },
+            {
+              href: "/cart",
+              icon: "fas fa-shopping-bag",
+              label: "Cart",
+              badge: cartCount,
+            },
           ].map(({ href, icon, label, badge }) => (
-            <Link key={href} href={href} className="sk-sidebar-link" onClick={() => setSidebarOpen(false)}>
+            <Link
+              key={href}
+              href={href}
+              className="sk-sidebar-link"
+              onClick={() => setSidebarOpen(false)}
+            >
               <i className={icon} /> {label}
               {badge > 0 && (
-                <span className="ms-auto" style={{
-                  background: "var(--burgundy)", color: "var(--cream)",
-                  fontSize: "0.65rem", fontWeight: 700, padding: "2px 7px",
-                  borderRadius: "10px",
-                }}>{badge}</span>
+                <span
+                  className="ms-auto"
+                  style={{
+                    background: "var(--burgundy)",
+                    color: "var(--cream)",
+                    fontSize: "0.65rem",
+                    fontWeight: 700,
+                    padding: "2px 7px",
+                    borderRadius: "10px",
+                  }}
+                >
+                  {badge}
+                </span>
               )}
             </Link>
           ))}
 
-          <div style={{ height: 1, background: "rgba(253,250,245,0.08)", margin: "8px 24px" }} />
+          <div
+            style={{
+              height: 1,
+              background: "rgba(253,250,245,0.08)",
+              margin: "8px 24px",
+            }}
+          />
 
           {isLogin ? (
-            <button className="sk-sidebar-link danger" onClick={() => { setSidebarOpen(false); logout(); }}>
+            <button
+              className="sk-sidebar-link danger"
+              onClick={() => {
+                setSidebarOpen(false);
+                logout();
+              }}
+            >
               <i className="fas fa-sign-out-alt" /> Sign Out
             </button>
           ) : (
-            <Link href="/login" className="sk-sidebar-link" onClick={() => setSidebarOpen(false)}>
+            <Link
+              href="/login"
+              className="sk-sidebar-link"
+              onClick={() => setSidebarOpen(false)}
+            >
               <i className="fas fa-sign-in-alt" /> Sign In
             </Link>
           )}
