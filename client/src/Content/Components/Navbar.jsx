@@ -14,6 +14,8 @@ export default function Navbar() {
   const [userName, setUserName] = useState("Guest");
   const [isLogin, setIsLogin] = useState(false);
   const [spacerH, setSpacerH] = useState(108);
+  // FIX: track announce height separately so we can set nav top via CSS var
+  const [announceH, setAnnounceH] = useState(36);
 
   const searchRef = useRef(null);
   const announceRef = useRef(null);
@@ -26,17 +28,28 @@ export default function Navbar() {
     }
   }, []);
 
-  const updateSpacerHeight = useCallback(() => {
-    const a = announceRef.current?.offsetHeight || 36;
-    const n = navRef.current?.offsetHeight || 72;
-    setSpacerH(a + n);
-  }, []);
-
+  // FIX: Use ResizeObserver so heights stay accurate when announce bar wraps on mobile
   useEffect(() => {
-    updateSpacerHeight();
-    window.addEventListener("resize", updateSpacerHeight);
-    return () => window.removeEventListener("resize", updateSpacerHeight);
-  }, [updateSpacerHeight]);
+    const update = () => {
+      const a = announceRef.current?.getBoundingClientRect().height || 36;
+      const n = navRef.current?.getBoundingClientRect().height || 72;
+      setAnnounceH(a);
+      setSpacerH(a + n);
+    };
+
+    // Run once after mount so refs are populated
+    update();
+
+    const ro = new ResizeObserver(update);
+    if (announceRef.current) ro.observe(announceRef.current);
+    if (navRef.current) ro.observe(navRef.current);
+    window.addEventListener("resize", update);
+
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", update);
+    };
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 60);
@@ -52,11 +65,6 @@ export default function Navbar() {
     document.body.style.overflow = sidebarOpen ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
   }, [sidebarOpen]);
-
-  // Recalculate spacer when announce bar content might change
-  useEffect(() => {
-    updateSpacerHeight();
-  }, [userName, updateSpacerHeight]);
 
   function logout() {
     localStorage.clear();
@@ -92,7 +100,8 @@ export default function Navbar() {
           min-height: 36px;
           height: auto;
           display: flex;
-          flex-wrap: wrap;
+          /* FIX: nowrap prevents the bar growing to 2 lines on mobile */
+          flex-wrap: nowrap;
           align-items: center;
           justify-content: center;
           padding: 6px 16px;
@@ -102,6 +111,9 @@ export default function Navbar() {
           text-transform: uppercase;
           gap: 4px;
           box-sizing: border-box;
+          /* FIX: keep text on one line on small screens */
+          white-space: nowrap;
+          overflow: hidden;
         }
 
         .sk-announce em {
@@ -111,6 +123,7 @@ export default function Navbar() {
         }
 
         /* ── Main nav ── */
+        /* FIX: top is now set via inline style using measured announceH state */
         .sk-nav {
           position: fixed;
           left: 0;
@@ -626,17 +639,20 @@ export default function Navbar() {
           .sk-wishlist-btn { display: none !important; }
         }
 
+        /* FIX: tighten action buttons on very small screens so logo doesn't get squished */
         @media (max-width: 360px) {
           .sk-logo-main { font-size: 1.4rem; }
           .sk-logo-sub { display: none; }
-          .sk-nav-inner { padding: 0 12px; }
+          .sk-nav-inner { padding: 0 10px; }
+          .sk-actions { gap: 0; }
+          .sk-action-btn { width: 36px; height: 36px; }
         }
 
         @media (max-width: 480px) {
           .sk-announce {
-            font-size: 0.63rem;
-            letter-spacing: 0.1em;
-            padding: 5px 12px;
+            font-size: 0.60rem;
+            letter-spacing: 0.06em;
+            padding: 5px 8px;
           }
         }
 
@@ -653,11 +669,11 @@ export default function Navbar() {
         <em>Free shipping</em> on orders above ₹499 &nbsp;·&nbsp; 7-day hassle-free returns
       </div>
 
-      {/* Main nav */}
+      {/* Main nav — FIX: top now uses measured announceH state, not a stale ref read */}
       <nav
         ref={navRef}
         className={`sk-nav${scrolled ? " scrolled" : ""}`}
-        style={{ top: announceRef.current?.offsetHeight || 36 }}
+        style={{ top: announceH }}
       >
         <div className="sk-nav-inner">
 
@@ -757,7 +773,7 @@ export default function Navbar() {
         </div>
       </nav>
 
-      {/* Spacer — dynamic height matching fixed announce + nav */}
+      {/* Spacer — FIX: height is now always accurate via ResizeObserver */}
       <div style={{ height: spacerH }} aria-hidden="true" />
 
       {/* Search overlay */}

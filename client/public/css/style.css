@@ -197,8 +197,15 @@ a:hover { color: var(--bs-secondary); }
 }
 
 /* ── Carousel ── */
-.carousel-item { position: relative; }
-.carousel-item::after {
+/* Single source of truth for carousel height — no min-height conflicts */
+#carouselId .carousel-item {
+    position: relative;
+    height: 580px;
+    overflow: hidden;
+}
+
+/* Dark gradient overlay via pseudo-element */
+#carouselId .carousel-item::after {
     content: "";
     width: 100%;
     height: 100%;
@@ -211,14 +218,32 @@ a:hover { color: var(--bs-secondary); }
         rgba(107,39,55,0.45) 60%,
         rgba(26,18,8,0.6) 100%
     );
+    z-index: 1;
+    pointer-events: none;
 }
 
-.carousel-caption {
+/* Image fills container — NO inline height/width on the <img> tag */
+#carouselId .carousel-item img {
+    width: 100%;
     height: 100%;
+    object-fit: cover;
+    object-position: center;
+    display: block;
+}
+
+/* Caption sits above the overlay */
+#carouselId .carousel-caption {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    top: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 1;
+    flex-direction: column;
+    z-index: 2;
+    padding-bottom: 40px;
 }
 
 .carousel-caption h6 {
@@ -246,9 +271,11 @@ a:hover { color: var(--bs-secondary); }
     height: 56px;
     position: absolute;
     top: 50%;
+    transform: translateY(-50%);
     background: var(--bs-primary);
     opacity: 0.9;
     transition: background var(--transition);
+    z-index: 3;
 }
 .carousel-control-prev { left: 0; border-radius: 0 40px 40px 0; }
 .carousel-control-next { right: 0; border-radius: 40px 0 0 40px; }
@@ -284,13 +311,22 @@ a:hover { color: var(--bs-secondary); }
 }
 #carouselId .carousel-indicators li.active { opacity: 1; width: 44px; }
 
-@media (max-width: 992px) {
-    .carousel-item { min-height: 500px; }
-    .carousel-item img { min-height: 500px; object-fit: cover; }
+/* Responsive — only height changes, nothing else */
+@media (max-width: 991px) {
+    #carouselId .carousel-item { height: 440px; }
 }
-@media (max-width: 768px) {
-    .carousel-item { min-height: 380px; }
-    .carousel-item img { min-height: 380px; object-fit: cover; }
+@media (max-width: 767px) {
+    #carouselId .carousel-item { height: 320px; }
+    .carousel-caption h6 { font-size: 0.75rem; }
+    .carousel-caption h1 { font-size: clamp(1.2rem, 5vw, 2rem) !important; }
+    .carousel-control-prev, .carousel-control-next { width: 44px; height: 44px; }
+}
+@media (max-width: 480px) {
+    #carouselId .carousel-item { height: 240px; }
+    .carousel-caption h6 { display: none; }
+    .carousel-caption h1 { font-size: 1.1rem !important; margin-bottom: 10px !important; }
+    .carousel-caption { padding-bottom: 16px; }
+    .carousel-control-prev, .carousel-control-next { width: 36px; height: 36px; }
 }
 
 /* Page Header */
