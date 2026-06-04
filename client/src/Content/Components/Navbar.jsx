@@ -1,11 +1,10 @@
 "use client"
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 
 export default function Navbar() {
   const router = useRouter();
-  const [data, setData] = useState([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [cartCount, setCartCount] = useState(0);
@@ -14,7 +13,11 @@ export default function Navbar() {
   const [searchQuery, setSearchQuery] = useState("");
   const [userName, setUserName] = useState("Guest");
   const [isLogin, setIsLogin] = useState(false);
+  const [spacerH, setSpacerH] = useState(108);
+
   const searchRef = useRef(null);
+  const announceRef = useRef(null);
+  const navRef = useRef(null);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -22,6 +25,18 @@ export default function Navbar() {
       setIsLogin(!!localStorage.getItem("login"));
     }
   }, []);
+
+  const updateSpacerHeight = useCallback(() => {
+    const a = announceRef.current?.offsetHeight || 36;
+    const n = navRef.current?.offsetHeight || 72;
+    setSpacerH(a + n);
+  }, []);
+
+  useEffect(() => {
+    updateSpacerHeight();
+    window.addEventListener("resize", updateSpacerHeight);
+    return () => window.removeEventListener("resize", updateSpacerHeight);
+  }, [updateSpacerHeight]);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 60);
@@ -37,6 +52,11 @@ export default function Navbar() {
     document.body.style.overflow = sidebarOpen ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
   }, [sidebarOpen]);
+
+  // Recalculate spacer when announce bar content might change
+  useEffect(() => {
+    updateSpacerHeight();
+  }, [userName, updateSpacerHeight]);
 
   function logout() {
     localStorage.clear();
@@ -56,7 +76,6 @@ export default function Navbar() {
           --gold-light: #E0A840;
           --cream: #FDFAF5;
           --parchment: #F4EDE4;
-          --announce-h: 36px;
           --nav-height: 72px;
         }
 
@@ -70,15 +89,19 @@ export default function Navbar() {
           background: var(--burgundy);
           color: var(--cream);
           text-align: center;
-          height: var(--announce-h);
+          min-height: 36px;
+          height: auto;
           display: flex;
+          flex-wrap: wrap;
           align-items: center;
           justify-content: center;
-          padding: 0 16px;
+          padding: 6px 16px;
           font-family: 'DM Sans', sans-serif;
           font-size: 0.72rem;
           letter-spacing: 0.18em;
           text-transform: uppercase;
+          gap: 4px;
+          box-sizing: border-box;
         }
 
         .sk-announce em {
@@ -90,7 +113,6 @@ export default function Navbar() {
         /* ── Main nav ── */
         .sk-nav {
           position: fixed;
-          top: var(--announce-h);
           left: 0;
           width: 100%;
           z-index: 1000;
@@ -98,6 +120,7 @@ export default function Navbar() {
           border-bottom: 1px solid rgba(107,39,55,0.12);
           transition: box-shadow 0.3s ease, background 0.3s ease;
           font-family: 'DM Sans', sans-serif;
+          box-sizing: border-box;
         }
 
         .sk-nav.scrolled {
@@ -113,6 +136,8 @@ export default function Navbar() {
           height: var(--nav-height);
           display: flex;
           align-items: center;
+          flex-wrap: nowrap;
+          min-width: 0;
         }
 
         /* ── Logo ── */
@@ -123,6 +148,7 @@ export default function Navbar() {
           line-height: 1;
           margin-right: 48px;
           flex-shrink: 0;
+          min-width: 0;
         }
 
         .sk-logo-main {
@@ -132,6 +158,7 @@ export default function Navbar() {
           color: var(--ink);
           letter-spacing: -0.01em;
           line-height: 1;
+          white-space: nowrap;
         }
 
         .sk-logo-main span { color: var(--burgundy); }
@@ -165,6 +192,7 @@ export default function Navbar() {
           align-items: center;
           position: relative;
           transition: color 0.2s ease;
+          white-space: nowrap;
         }
 
         .sk-link::after {
@@ -195,11 +223,12 @@ export default function Navbar() {
           align-items: center;
           gap: 4px;
           margin-left: auto;
+          flex-shrink: 0;
         }
 
         .sk-action-btn {
-          width: 42px;
-          height: 42px;
+          width: 44px;
+          height: 44px;
           border: none;
           background: transparent;
           border-radius: 50%;
@@ -212,6 +241,8 @@ export default function Navbar() {
           transition: background 0.2s ease, color 0.2s ease;
           text-decoration: none;
           font-size: 1rem;
+          -webkit-tap-highlight-color: transparent;
+          touch-action: manipulation;
         }
 
         .sk-action-btn:hover {
@@ -235,6 +266,7 @@ export default function Navbar() {
           justify-content: center;
           padding: 0 3px;
           font-family: 'DM Sans', sans-serif;
+          pointer-events: none;
         }
 
         /* ── Dropdown ── */
@@ -346,7 +378,7 @@ export default function Navbar() {
           display: flex;
           align-items: center;
           gap: 12px;
-          width: min(600px, calc(100vw - 48px));
+          width: min(600px, calc(100vw - 32px));
           box-shadow: 0 24px 80px rgba(26,18,8,0.25);
         }
 
@@ -359,6 +391,11 @@ export default function Navbar() {
           color: var(--ink);
           outline: none;
           padding: 8px 0;
+          min-width: 0;
+        }
+
+        @media (max-width: 480px) {
+          .sk-search-input { font-size: 1.1rem; }
         }
 
         .sk-search-input::placeholder { color: rgba(26,18,8,0.3); }
@@ -371,6 +408,8 @@ export default function Navbar() {
           font-size: 1.2rem;
           padding: 4px;
           transition: color 0.2s;
+          flex-shrink: 0;
+          touch-action: manipulation;
         }
 
         .sk-search-close:hover { color: var(--burgundy); }
@@ -381,12 +420,25 @@ export default function Navbar() {
           border: none;
           background: transparent;
           cursor: pointer;
-          padding: 8px;
+          padding: 0;
           color: var(--ink);
           font-size: 1.2rem;
+          width: 44px;
+          height: 44px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 50%;
+          transition: background 0.2s ease;
+          -webkit-tap-highlight-color: transparent;
+          touch-action: manipulation;
+          flex-shrink: 0;
         }
 
-        /* ── Sidebar ── */
+        .sk-mobile-toggle:hover {
+          background: var(--parchment);
+        }
+
+        /* ── Sidebar overlay ── */
         .sk-sidebar-overlay {
           position: fixed;
           inset: 0;
@@ -402,12 +454,14 @@ export default function Navbar() {
           visibility: visible;
         }
 
+        /* ── Sidebar ── */
         .sk-sidebar {
           position: fixed;
           top: 0;
           right: 0;
           bottom: 0;
           width: 300px;
+          max-width: 85vw;
           background: var(--ink);
           z-index: 1200;
           transform: translateX(100%);
@@ -415,6 +469,8 @@ export default function Navbar() {
           display: flex;
           flex-direction: column;
           overflow-y: auto;
+          overflow-x: hidden;
+          -webkit-overflow-scrolling: touch;
         }
 
         .sk-sidebar.open {
@@ -422,11 +478,12 @@ export default function Navbar() {
         }
 
         .sk-sidebar-head {
-          padding: 24px 24px 20px;
+          padding: 20px 20px 16px;
           border-bottom: 1px solid rgba(253,250,245,0.1);
           display: flex;
           align-items: center;
           justify-content: space-between;
+          flex-shrink: 0;
         }
 
         .sk-sidebar-logo {
@@ -442,8 +499,8 @@ export default function Navbar() {
           border: none;
           background: rgba(253,250,245,0.1);
           color: var(--cream);
-          width: 36px;
-          height: 36px;
+          width: 40px;
+          height: 40px;
           border-radius: 50%;
           display: flex;
           align-items: center;
@@ -451,13 +508,18 @@ export default function Navbar() {
           cursor: pointer;
           transition: background 0.2s;
           font-size: 1rem;
+          flex-shrink: 0;
+          -webkit-tap-highlight-color: transparent;
+          touch-action: manipulation;
         }
 
-        .sk-sidebar-close:hover { background: rgba(253,250,245,0.2); }
+        .sk-sidebar-close:hover,
+        .sk-sidebar-close:active { background: rgba(253,250,245,0.2); }
 
         .sk-sidebar-profile {
-          padding: 20px 24px;
+          padding: 16px 20px;
           border-bottom: 1px solid rgba(253,250,245,0.08);
+          flex-shrink: 0;
         }
 
         .sk-sidebar-greeting {
@@ -474,11 +536,16 @@ export default function Navbar() {
           font-size: 1.15rem;
           font-weight: 600;
           color: var(--cream);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
 
         .sk-sidebar-nav {
           flex: 1;
-          padding: 12px 0;
+          padding: 8px 0;
+          overflow-y: auto;
+          -webkit-overflow-scrolling: touch;
         }
 
         .sk-sidebar-label {
@@ -487,7 +554,7 @@ export default function Navbar() {
           letter-spacing: 0.22em;
           text-transform: uppercase;
           color: rgba(253,250,245,0.3);
-          padding: 16px 24px 6px;
+          padding: 14px 20px 6px;
           font-family: 'DM Sans', sans-serif;
         }
 
@@ -495,7 +562,7 @@ export default function Navbar() {
           display: flex;
           align-items: center;
           gap: 12px;
-          padding: 12px 24px;
+          padding: 13px 20px;
           font-family: 'DM Sans', sans-serif;
           font-size: 0.88rem;
           color: rgba(253,250,245,0.7);
@@ -506,39 +573,92 @@ export default function Navbar() {
           width: 100%;
           text-align: left;
           cursor: pointer;
+          -webkit-tap-highlight-color: transparent;
+          touch-action: manipulation;
+          min-height: 48px;
         }
 
-        .sk-sidebar-link:hover {
+        .sk-sidebar-link:hover,
+        .sk-sidebar-link:active {
           color: var(--cream);
           background: rgba(253,250,245,0.06);
         }
 
-        .sk-sidebar-link i { width: 18px; text-align: center; font-size: 0.95rem; }
-        .sk-sidebar-link .ms-auto { margin-left: auto; }
+        .sk-sidebar-link i {
+          width: 18px;
+          text-align: center;
+          font-size: 0.95rem;
+          flex-shrink: 0;
+        }
+
+        .sk-sidebar-link .sk-badge-pill {
+          margin-left: auto;
+          background: var(--burgundy);
+          color: var(--cream);
+          font-size: 0.65rem;
+          font-weight: 700;
+          padding: 2px 7px;
+          border-radius: 10px;
+          flex-shrink: 0;
+        }
 
         .sk-sidebar-link.danger { color: rgba(220,80,80,0.8); }
-        .sk-sidebar-link.danger:hover { color: #e06060; background: rgba(220,80,80,0.08); }
+        .sk-sidebar-link.danger:hover,
+        .sk-sidebar-link.danger:active { color: #e06060; background: rgba(220,80,80,0.08); }
+
+        .sk-sidebar-divider {
+          height: 1px;
+          background: rgba(253,250,245,0.08);
+          margin: 8px 20px;
+        }
 
         /* ── Responsive ── */
         @media (max-width: 991px) {
-          .sk-links { display: none; }
-          .sk-mobile-toggle { display: flex; }
-          .sk-nav-inner { padding: 0 20px; }
+          .sk-links { display: none !important; }
+          .sk-dropdown { display: none !important; }
+          .sk-mobile-toggle { display: flex !important; }
+          .sk-nav-inner { padding: 0 16px; }
           .sk-logo { margin-right: 0; }
         }
 
+        @media (max-width: 575px) {
+          .sk-cart-btn,
+          .sk-wishlist-btn { display: none !important; }
+        }
+
+        @media (max-width: 360px) {
+          .sk-logo-main { font-size: 1.4rem; }
+          .sk-logo-sub { display: none; }
+          .sk-nav-inner { padding: 0 12px; }
+        }
+
         @media (max-width: 480px) {
-          .sk-announce { font-size: 0.65rem; letter-spacing: 0.1em; }
+          .sk-announce {
+            font-size: 0.63rem;
+            letter-spacing: 0.1em;
+            padding: 5px 12px;
+          }
+        }
+
+        /* ── Safe area support (notched phones) ── */
+        @supports (padding-bottom: env(safe-area-inset-bottom)) {
+          .sk-sidebar {
+            padding-bottom: env(safe-area-inset-bottom);
+          }
         }
       `}</style>
 
       {/* Announcement bar */}
-      <div className="sk-announce fixed-top">
+      <div className="sk-announce" ref={announceRef}>
         <em>Free shipping</em> on orders above ₹499 &nbsp;·&nbsp; 7-day hassle-free returns
       </div>
 
       {/* Main nav */}
-      <nav className={`sk-nav${scrolled ? " scrolled" : ""}`}>
+      <nav
+        ref={navRef}
+        className={`sk-nav${scrolled ? " scrolled" : ""}`}
+        style={{ top: announceRef.current?.offsetHeight || 36 }}
+      >
         <div className="sk-nav-inner">
 
           {/* Logo */}
@@ -548,7 +668,7 @@ export default function Navbar() {
           </Link>
 
           {/* Desktop links */}
-          <div className="sk-links d-none d-lg-flex">
+          <div className="sk-links">
             <Link href="/" className="sk-link">Home</Link>
             <Link href="/about" className="sk-link">About</Link>
             <Link href="/shop" className="sk-link">Shop</Link>
@@ -561,24 +681,36 @@ export default function Navbar() {
           <div className="sk-actions">
 
             {/* Search */}
-            <button className="sk-action-btn" onClick={() => setSearchOpen(true)} aria-label="Search">
+            <button
+              className="sk-action-btn"
+              onClick={() => setSearchOpen(true)}
+              aria-label="Search"
+            >
               <i className="fas fa-search" style={{ fontSize: "0.9rem" }} />
             </button>
 
-            {/* Wishlist */}
-            <Link href="/wishlist" className="sk-action-btn d-none d-sm-flex" aria-label="Wishlist">
+            {/* Wishlist — hidden on xs */}
+            <Link
+              href="/wishlist"
+              className="sk-action-btn sk-wishlist-btn"
+              aria-label="Wishlist"
+            >
               <i className="far fa-heart" style={{ fontSize: "0.95rem" }} />
               {wishlistCount > 0 && <span className="sk-badge">{wishlistCount}</span>}
             </Link>
 
-            {/* Cart */}
-            <Link href="/cart" className="sk-action-btn d-none d-sm-flex" aria-label="Cart">
+            {/* Cart — hidden on xs */}
+            <Link
+              href="/cart"
+              className="sk-action-btn sk-cart-btn"
+              aria-label="Cart"
+            >
               <i className="fas fa-shopping-bag" style={{ fontSize: "0.9rem" }} />
               {cartCount > 0 && <span className="sk-badge">{cartCount}</span>}
             </Link>
 
             {/* Profile dropdown — desktop only */}
-            <div className="sk-dropdown d-none d-lg-block">
+            <div className="sk-dropdown">
               <button className="sk-action-btn" aria-label="Account">
                 <i className="far fa-user" style={{ fontSize: "0.95rem" }} />
               </button>
@@ -614,9 +746,10 @@ export default function Navbar() {
 
             {/* Mobile hamburger */}
             <button
-              className="sk-mobile-toggle d-lg-none"
+              className="sk-mobile-toggle"
               onClick={() => setSidebarOpen(true)}
-              aria-label="Menu"
+              aria-label="Open menu"
+              aria-expanded={sidebarOpen}
             >
               <i className="fas fa-bars" />
             </button>
@@ -624,16 +757,19 @@ export default function Navbar() {
         </div>
       </nav>
 
-      {/* Spacer — pushes page content below fixed announce + nav */}
-      <div style={{ height: "calc(var(--announce-h) + var(--nav-height))" }} />
+      {/* Spacer — dynamic height matching fixed announce + nav */}
+      <div style={{ height: spacerH }} aria-hidden="true" />
 
       {/* Search overlay */}
       <div
         className={`sk-search-overlay${searchOpen ? " open" : ""}`}
         onClick={() => setSearchOpen(false)}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Search"
       >
         <div className="sk-search-box" onClick={e => e.stopPropagation()}>
-          <i className="fas fa-search" style={{ color: "var(--gold)", fontSize: "1rem" }} />
+          <i className="fas fa-search" style={{ color: "var(--gold)", fontSize: "1rem", flexShrink: 0 }} aria-hidden="true" />
           <input
             ref={searchRef}
             className="sk-search-input"
@@ -641,14 +777,20 @@ export default function Navbar() {
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             onKeyDown={e => {
-              if (e.key === "Enter") {
+              if (e.key === "Enter" && searchQuery.trim()) {
                 setSearchOpen(false);
-                router.push(`/shop?q=${searchQuery}`);
+                router.push(`/shop?q=${encodeURIComponent(searchQuery.trim())}`);
               }
+              if (e.key === "Escape") setSearchOpen(false);
             }}
+            aria-label="Search query"
           />
-          <button className="sk-search-close" onClick={() => setSearchOpen(false)}>
-            <i className="fas fa-times" />
+          <button
+            className="sk-search-close"
+            onClick={() => setSearchOpen(false)}
+            aria-label="Close search"
+          >
+            <i className="fas fa-times" aria-hidden="true" />
           </button>
         </div>
       </div>
@@ -657,14 +799,24 @@ export default function Navbar() {
       <div
         className={`sk-sidebar-overlay${sidebarOpen ? " open" : ""}`}
         onClick={() => setSidebarOpen(false)}
+        aria-hidden="true"
       />
 
       {/* Sidebar */}
-      <div className={`sk-sidebar${sidebarOpen ? " open" : ""}`}>
+      <div
+        className={`sk-sidebar${sidebarOpen ? " open" : ""}`}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Navigation menu"
+      >
         <div className="sk-sidebar-head">
           <span className="sk-sidebar-logo">Book<span>Plaza</span></span>
-          <button className="sk-sidebar-close" onClick={() => setSidebarOpen(false)}>
-            <i className="fas fa-times" />
+          <button
+            className="sk-sidebar-close"
+            onClick={() => setSidebarOpen(false)}
+            aria-label="Close menu"
+          >
+            <i className="fas fa-times" aria-hidden="true" />
           </button>
         </div>
 
@@ -673,7 +825,7 @@ export default function Navbar() {
           <p className="sk-sidebar-uname">{userName}</p>
         </div>
 
-        <nav className="sk-sidebar-nav">
+        <nav className="sk-sidebar-nav" aria-label="Mobile navigation">
           <p className="sk-sidebar-label">Navigate</p>
           {[
             { href: "/", icon: "fas fa-home", label: "Home" },
@@ -683,8 +835,13 @@ export default function Navbar() {
             { href: "/testimonial", icon: "fas fa-quote-left", label: "Reviews" },
             { href: "/contactus", icon: "fas fa-envelope", label: "Contact" },
           ].map(({ href, icon, label }) => (
-            <Link key={href} href={href} className="sk-sidebar-link" onClick={() => setSidebarOpen(false)}>
-              <i className={icon} /> {label}
+            <Link
+              key={href}
+              href={href}
+              className="sk-sidebar-link"
+              onClick={() => setSidebarOpen(false)}
+            >
+              <i className={icon} aria-hidden="true" /> {label}
             </Link>
           ))}
 
@@ -696,27 +853,33 @@ export default function Navbar() {
             { href: "/wishlist", icon: "far fa-heart", label: "Wishlist", badge: wishlistCount },
             { href: "/cart", icon: "fas fa-shopping-bag", label: "Cart", badge: cartCount },
           ].map(({ href, icon, label, badge }) => (
-            <Link key={href} href={href} className="sk-sidebar-link" onClick={() => setSidebarOpen(false)}>
-              <i className={icon} /> {label}
-              {badge > 0 && (
-                <span className="ms-auto" style={{
-                  background: "var(--burgundy)", color: "var(--cream)",
-                  fontSize: "0.65rem", fontWeight: 700,
-                  padding: "2px 7px", borderRadius: "10px",
-                }}>{badge}</span>
-              )}
+            <Link
+              key={href}
+              href={href}
+              className="sk-sidebar-link"
+              onClick={() => setSidebarOpen(false)}
+            >
+              <i className={icon} aria-hidden="true" /> {label}
+              {badge > 0 && <span className="sk-badge-pill">{badge}</span>}
             </Link>
           ))}
 
-          <div style={{ height: 1, background: "rgba(253,250,245,0.08)", margin: "8px 24px" }} />
+          <div className="sk-sidebar-divider" />
 
           {isLogin ? (
-            <button className="sk-sidebar-link danger" onClick={() => { setSidebarOpen(false); logout(); }}>
-              <i className="fas fa-sign-out-alt" /> Sign Out
+            <button
+              className="sk-sidebar-link danger"
+              onClick={() => { setSidebarOpen(false); logout(); }}
+            >
+              <i className="fas fa-sign-out-alt" aria-hidden="true" /> Sign Out
             </button>
           ) : (
-            <Link href="/login" className="sk-sidebar-link" onClick={() => setSidebarOpen(false)}>
-              <i className="fas fa-sign-in-alt" /> Sign In
+            <Link
+              href="/login"
+              className="sk-sidebar-link"
+              onClick={() => setSidebarOpen(false)}
+            >
+              <i className="fas fa-sign-in-alt" aria-hidden="true" /> Sign In
             </Link>
           )}
         </nav>
