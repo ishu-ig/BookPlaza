@@ -110,7 +110,7 @@ const CheckoutSchema = new mongoose.Schema(
 
 /* ── Virtual: does this order contain any ebook? ─────────────── */
 CheckoutSchema.virtual("hasEbook").get(function () {
-    return (this.Books || []).some((item) => item.format === "Ebook");
+    return (this.books || []).some((item) => item.format === "Ebook");
 });
 
 /* ── Virtual: is ebook accessible? ──────────────────────────── */

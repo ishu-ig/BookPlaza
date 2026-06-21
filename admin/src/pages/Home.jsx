@@ -1,795 +1,840 @@
 import React, { useEffect, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
 import { Link } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
 import {
     BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
     PieChart, Pie, Cell, Legend,
+    AreaChart, Area,
 } from "recharts";
 
-import { getCategory }     from "../Redux/ActionCreartors/CategoryActionCreators";
-import { getSubcategory }  from "../Redux/ActionCreartors/SubcategoryActionCreators";
-import { getPublisher }    from "../Redux/ActionCreartors/PublisherActionCreators";
-import { getTestimonial }  from "../Redux/ActionCreartors/TestimonialActionCreators";
-import { getBook }         from "../Redux/ActionCreartors/BookActionCreators";
-import { getBanner }       from "../Redux/ActionCreartors/BannerActionCreators";
-import { getCheckout }     from "../Redux/ActionCreartors/CheckoutActionCreators";
-import { getNewsletter }   from "../Redux/ActionCreartors/NewsletterActionCreators";
-import { getContactUs }    from "../Redux/ActionCreartors/ContactUsActionCreators";
+import { getCategory }     from "../Redux/ActionCreators/CategoryActionCreators";
+import { getSubcategory }  from "../Redux/ActionCreators/SubcategoryActionCreators";
+import { getPublisher }    from "../Redux/ActionCreators/PublisherActionCreators";
+import { getBook }         from "../Redux/ActionCreators/BookActionCreators";
+import { getBanner }       from "../Redux/ActionCreators/BannerActionCreators";
+import { getCart }         from "../Redux/ActionCreators/CartActionCreators";
+import { getWishlist }     from "../Redux/ActionCreators/WishlistActionCreators";
+import { getCheckout }     from "../Redux/ActionCreators/CheckoutActionCreators";
+import { getNewsletter }   from "../Redux/ActionCreators/NewsletterActionCreators";
+import { getContactUs }    from "../Redux/ActionCreators/ContactUsActionCreators";
+import { getTestimonial }  from "../Redux/ActionCreators/TestimonialActionCreators";
 
-// ── Sample fallback data ───────────────────────────────────────────────────────
+// ── Sample fallback ────────────────────────────────────────────────────────────
 const SAMPLE = {
     categories: [
-        { name: "Fiction",      active: true  },
-        { name: "Non-Fiction",  active: true  },
-        { name: "Science",      active: true  },
-        { name: "History",      active: false },
-        { name: "Technology",   active: true  },
+        { name: "Fiction",        active: true  },
+        { name: "Non-Fiction",    active: true  },
+        { name: "Children",       active: false },
+        { name: "Academic",       active: true  },
     ],
     subcategories: [
-        { name: "Fantasy",       active: true  },
-        { name: "Mystery",       active: true  },
-        { name: "Biography",     active: true  },
-        { name: "Self-Help",     active: false },
-        { name: "Programming",   active: true  },
-        { name: "Physics",       active: true  },
+        { name: "Fantasy",     active: true  },
+        { name: "Thriller",    active: true  },
+        { name: "Biography",   active: true  },
+        { name: "Self-Help",   active: false },
+        { name: "Textbooks",   active: true  },
     ],
     publishers: [
-        { name: "Penguin Random House", active: true  },
-        { name: "HarperCollins",        active: true  },
-        { name: "Oxford Press",         active: true  },
-        { name: "Scholastic",           active: false },
-    ],
-    testimonials: [
-        { name: "Rahul Sharma",  active: true  },
-        { name: "Priya Mehta",   active: true  },
-        { name: "Aakash Singh",  active: false },
-        { name: "Sneha Patel",   active: true  },
-        { name: "Vikram Nair",   active: false },
-        { name: "Anjali Rao",    active: true  },
+        { name: "Penguin",      active: true  },
+        { name: "HarperCollins",active: true  },
+        { name: "Scholastic",   active: true  },
+        { name: "Oxford Press", active: false },
+        { name: "Bloomsbury",   active: true  },
     ],
     books: [
-        { title: "The Great Gatsby",       category: "Fiction",     featured: true,  active: true,  rating: 4.5, stock: 12, formatPricing: [{ format: "Paperback", finalPrice: 299 }] },
-        { title: "Sapiens",                category: "Non-Fiction", featured: true,  active: true,  rating: 4.8, stock: 8,  formatPricing: [{ format: "Hardcover", finalPrice: 499 }] },
-        { title: "Clean Code",             category: "Technology",  featured: false, active: true,  rating: 4.7, stock: 5,  formatPricing: [{ format: "Ebook",     finalPrice: 199 }] },
-        { title: "A Brief History of Time",category: "Science",     featured: true,  active: true,  rating: 4.6, stock: 0,  formatPricing: [{ format: "Paperback", finalPrice: 349 }] },
-        { title: "Atomic Habits",          category: "Non-Fiction", featured: false, active: false, rating: 4.9, stock: 20, formatPricing: [{ format: "Hardcover", finalPrice: 599 }] },
-        { title: "1984",                   category: "Fiction",     featured: true,  active: true,  rating: 4.4, stock: 3,  formatPricing: [{ format: "Paperback", finalPrice: 249 }] },
+        { title: "The Silent Forest",   publisher: { name: "Penguin"       }, category: { name: "Fiction"     }, stock: true,  stockQuantity: 8,   price: 599,  discount: 10, finalPrice: 539  },
+        { title: "Modern Physics",      publisher: { name: "Oxford Press"  }, category: { name: "Academic"    }, stock: true,  stockQuantity: 30,  price: 899,  discount: 5,  finalPrice: 854  },
+        { title: "Wizard's Path",       publisher: { name: "Scholastic"    }, category: { name: "Children"    }, stock: true,  stockQuantity: 100, price: 399,  discount: 15, finalPrice: 339  },
+        { title: "Mind & Memory",       publisher: { name: "HarperCollins" }, category: { name: "Non-Fiction" }, stock: false, stockQuantity: 0,   price: 449,  discount: 20, finalPrice: 359  },
+        { title: "Letters from Home",   publisher: { name: "Bloomsbury"    }, category: { name: "Fiction"     }, stock: true,  stockQuantity: 5,   price: 349,  discount: 25, finalPrice: 262  },
+        { title: "The Long Expedition", publisher: { name: "Penguin"       }, category: { name: "Non-Fiction" }, stock: true,  stockQuantity: 3,   price: 799,  discount: 5,  finalPrice: 759  },
+        { title: "Riddles for Rainy Days", publisher: { name: "Scholastic" }, category: { name: "Children"    }, stock: false, stockQuantity: 0,   price: 249,  discount: 20, finalPrice: 199  },
     ],
-    banners: [
-        { title: "Summer Sale",     active: true  },
-        { title: "New Arrivals",    active: true  },
-        { title: "Ebook Offers",    active: false },
-    ],
+    banners: [{ title: "Summer Sale" }, { title: "New Arrivals" }, { title: "Bestsellers Week" }],
+    carts: Array(11).fill({ _id: "x" }),
+    wishlists: Array(17).fill({ _id: "x" }),
     checkouts: [
-        { orderStatus: "Delivered",       paymentStatus: "Done",    total: 598,  paymentMode: "Net Banking" },
-        { orderStatus: "Ordered",         paymentStatus: "Pending", total: 299,  paymentMode: "COD"         },
-        { orderStatus: "Processing",      paymentStatus: "Pending", total: 499,  paymentMode: "COD"         },
-        { orderStatus: "Shipped",         paymentStatus: "Done",    total: 1098, paymentMode: "Net Banking" },
-        { orderStatus: "Cancelled",       paymentStatus: "Failed",  total: 349,  paymentMode: "Net Banking" },
-        { orderStatus: "Out For Delivery",paymentStatus: "Pending", total: 249,  paymentMode: "COD"         },
-        { orderStatus: "Delivered",       paymentStatus: "Done",    total: 799,  paymentMode: "Net Banking" },
+        { user: { name: "Rahul Sharma"  }, paymentMode: "Net Banking", subtotal: 539,  shipping: 0,  total: 539,  orderStatus: "Delivered",        paymentStatus: "Done",    createdAt: "2025-02-10" },
+        { user: { name: "Priya Mehta"   }, paymentMode: "COD",         subtotal: 854,  shipping: 49, total: 903,  orderStatus: "Processing",       paymentStatus: "Pending", createdAt: "2025-03-15" },
+        { user: { name: "Aakash Singh"  }, paymentMode: "Net Banking", subtotal: 339,  shipping: 0,  total: 339,  orderStatus: "Out For Delivery", paymentStatus: "Done",    createdAt: "2025-04-01" },
+        { user: { name: "Sneha Patel"   }, paymentMode: "COD",         subtotal: 262,  shipping: 49, total: 311,  orderStatus: "Ordered",          paymentStatus: "Pending", createdAt: "2025-04-18" },
+        { user: { name: "Vikram Nair"   }, paymentMode: "COD",         subtotal: 359,  shipping: 49, total: 408,  orderStatus: "Cancelled",        paymentStatus: "Pending", createdAt: "2025-05-02" },
+        { user: { name: "Anjali Rao"    }, paymentMode: "Net Banking", subtotal: 759,  shipping: 0,  total: 759,  orderStatus: "Delivered",        paymentStatus: "Done",    createdAt: "2025-05-20" },
     ],
-    newsletters: Array(34).fill(null).map((_, i) => ({ _id: `nl${i}`, email: `user${i}@example.com`, active: true })),
+    newsletters:  Array(28).fill({ _id: "x" }),
     contacts: [
-        { name: "Rahul Sharma",  email: "rahul@email.com",  subject: "Book Recommendation", active: true  },
-        { name: "Priya Mehta",   email: "priya@email.com",  subject: "Bulk Order Query",    active: true  },
-        { name: "Aakash Singh",  email: "aakash@email.com", subject: "Return Request",      active: false },
-        { name: "Sneha Patel",   email: "sneha@email.com",  subject: "Ebook Access Issue",  active: true  },
-        { name: "Vikram Nair",   email: "vikram@email.com", subject: "Feedback",            active: false },
+        { name: "Rahul Sharma",  email: "rahul@email.com",  active: true  },
+        { name: "Priya Mehta",   email: "priya@email.com",  active: true  },
+        { name: "Aakash Singh",  email: "aakash@email.com", active: false },
+        { name: "Sneha Patel",   email: "sneha@email.com",  active: true  },
+        { name: "Vikram Nair",   email: "vikram@email.com", active: false },
+    ],
+    testimonials: [
+        { name: "Rahul Sharma", active: true  },
+        { name: "Priya Mehta",  active: true  },
+        { name: "Aakash Singh", active: false },
+        { name: "Sneha Patel",  active: true  },
+        { name: "Vikram Nair",  active: false },
     ],
 };
 
-// ── Custom tooltip ─────────────────────────────────────────────────────────────
+function unwrap(slice) {
+    if (!slice) return [];
+    if (Array.isArray(slice)) return slice;
+    if (Array.isArray(slice.data)) return slice.data;
+    return [];
+}
+
+// ── Tooltip — uses BS CSS vars so it adapts to light/dark theme ───────────────
 const DashTooltip = ({ active, payload, label }) => {
     if (!active || !payload?.length) return null;
     return (
         <div style={{
-            background: "#161D2F", border: "1px solid rgba(79,142,247,0.25)",
-            borderRadius: "10px", padding: "10px 14px", fontSize: "12.5px", lineHeight: 1.8,
+            background: "var(--bs-body-bg, #fff)",
+            border: "1px solid var(--bs-border-color)",
+            borderRadius: 8, padding: "8px 14px", fontSize: 12,
         }}>
-            {label && <p style={{ color: "#8896B3", marginBottom: "4px", fontWeight: 700, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em" }}>{label}</p>}
+            {label && <p style={{ margin: "0 0 4px", fontWeight: 700, fontSize: 11 }}>{label}</p>}
             {payload.map((p, i) => (
-                <p key={i} style={{ color: p.color || p.fill || "#EEF2FF", margin: 0 }}>
-                    {p.name}: <strong style={{ color: "#EEF2FF" }}>{p.value}</strong>
+                <p key={i} style={{ margin: 0, color: p.fill || p.color }}>
+                    {p.name}: <strong>
+                        {(p.name || "").toLowerCase().includes("revenue") || (p.name || "").toLowerCase().includes("total")
+                            ? "₹" + Number(p.value).toLocaleString("en-IN")
+                            : p.value}
+                    </strong>
                 </p>
             ))}
         </div>
     );
 };
 
-// ── Unwrap any Redux slice shape ───────────────────────────────────────────────
-function unwrap(slice) {
-    if (!slice) return [];
-    if (Array.isArray(slice)) return slice;
-    if (Array.isArray(slice.data)) return slice.data;
-    if (slice.data && Array.isArray(slice.data.data)) return slice.data.data;
-    for (const key of ["result", "records", "items", "list"]) {
-        if (Array.isArray(slice[key])) return slice[key];
-    }
-    return [];
+// ── Order status badge helper — keys match the Checkout schema enum ──────────
+function orderBadge(status) {
+    return {
+        "Ordered":          { cls: "badge text-bg-warning",   label: "Placed"      },
+        "Processing":       { cls: "badge text-bg-primary",   label: "Processing"  },
+        "Shipped":          { cls: "badge text-bg-info",      label: "Shipped"     },
+        "Out For Delivery": { cls: "badge text-bg-info",      label: "Dispatched"  },
+        "Delivered":        { cls: "badge text-bg-success",   label: "Delivered"   },
+        "Cancelled":        { cls: "badge text-bg-danger",    label: "Cancelled"   },
+    }[status] || { cls: "badge text-bg-secondary", label: status || "—" };
 }
 
-const currency = (n) =>
-    `Rs. ${Number(n || 0).toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+function payBadge(status) {
+    return {
+        "Done":    "badge text-bg-success",
+        "Pending": "badge text-bg-warning",
+        "Failed":  "badge text-bg-danger",
+    }[status] || "badge text-bg-secondary";
+}
 
 export default function Home() {
     const dispatch = useDispatch();
-    const [loaded, setLoaded]           = useState(false);
+    const [loaded,      setLoaded]      = useState(false);
     const [usingSample, setUsingSample] = useState(false);
 
+    // ── Selectors — keys match RootReducer.jsx exactly ────────────────────────
     const raw = {
         categories:    useSelector(s => s.CategoryStateData),
         subcategories: useSelector(s => s.SubcategoryStateData),
         publishers:    useSelector(s => s.PublisherStateData),
-        testimonials:  useSelector(s => s.TestimonialStateData),
         books:         useSelector(s => s.BookStateData),
         banners:       useSelector(s => s.BannerStateData),
+        carts:         useSelector(s => s.CartStateData),
+        wishlists:     useSelector(s => s.WishlistStateData),
         checkouts:     useSelector(s => s.CheckoutStateData),
         newsletters:   useSelector(s => s.NewsletterStateData),
         contacts:      useSelector(s => s.ContactUsStateData),
+        testimonials:  useSelector(s => s.TestimonialStateData),
     };
 
     useEffect(() => {
         dispatch(getCategory());
         dispatch(getSubcategory());
         dispatch(getPublisher());
-        dispatch(getTestimonial());
         dispatch(getBook());
         dispatch(getBanner());
+        dispatch(getCart());
+        dispatch(getWishlist());
         dispatch(getCheckout());
         dispatch(getNewsletter());
         dispatch(getContactUs());
+        dispatch(getTestimonial());
         setTimeout(() => setLoaded(true), 600);
     }, []);
 
-    const live = {
-        categories:    unwrap(raw.categories),
-        subcategories: unwrap(raw.subcategories),
-        publishers:    unwrap(raw.publishers),
-        testimonials:  unwrap(raw.testimonials),
-        books:         unwrap(raw.books),
-        banners:       unwrap(raw.banners),
-        checkouts:     unwrap(raw.checkouts),
-        newsletters:   unwrap(raw.newsletters),
-        contacts:      unwrap(raw.contacts),
-    };
+    const live = Object.fromEntries(
+        Object.entries(raw).map(([k, v]) => [k, unwrap(v)])
+    );
 
     const allEmpty = loaded && Object.values(live).every(a => a.length === 0);
     useEffect(() => { if (loaded) setUsingSample(allEmpty); }, [allEmpty, loaded]);
 
     const D = allEmpty ? SAMPLE : live;
 
-    // ── Derived numbers ────────────────────────────────────────────────────────
-    const featuredBooks       = D.books.filter(b => b.featured).length;
-    const activeBooks         = D.books.filter(b => b.active).length;
-    const outOfStockBooks     = D.books.filter(b => (b.stock ?? 1) === 0).length;
-    const activeTestimonials  = D.testimonials.filter(t => t.active).length;
-    const pendingTestimonials = D.testimonials.filter(t => !t.active).length;
-    const activeBanners       = D.banners.filter(b => b.active).length;
-    const pendingContacts     = D.contacts.filter(c => c.active).length;
-    const activeNewsletters   = D.newsletters.filter(n => n.active).length;
+    // ── Derived numbers ───────────────────────────────────────────────────────
+    const fmt = n => "₹" + Number(n).toLocaleString("en-IN");
 
-    // Order status breakdown
-    const orderStatusMap = {};
-    D.checkouts.forEach(o => {
-        const s = o.orderStatus || "Unknown";
-        orderStatusMap[s] = (orderStatusMap[s] || 0) + 1;
-    });
-    const orderStatusData = Object.entries(orderStatusMap).map(([name, count]) => ({ name, count }));
+    const outOfStock           = D.books.filter(b => !b.stock).length;
+    const inStock              = D.books.filter(b => b.stock).length;
 
-    // Revenue from delivered orders
-    const totalRevenue = D.checkouts
-        .filter(o => o.paymentStatus === "Done")
-        .reduce((sum, o) => sum + Number(o.total || 0), 0);
+    const totalRevenue         = D.checkouts.filter(o => o.paymentStatus === "Done").reduce((s, o) => s + (o.total || 0), 0);
+    const totalRevenuePending  = D.checkouts.filter(o => o.paymentStatus === "Pending").reduce((s, o) => s + (o.total || 0), 0);
 
-    // Payment mode split
-    const codOrders     = D.checkouts.filter(o => o.paymentMode === "COD").length;
-    const onlineOrders  = D.checkouts.filter(o => o.paymentMode === "Net Banking").length;
-    const paymentModeData = [
-        { name: "COD",         value: codOrders,    color: "#F7C35F" },
-        { name: "Net Banking", value: onlineOrders, color: "#4F8EF7" },
-    ].filter(d => d.value > 0);
+    const pendingOrders        = D.checkouts.filter(o => o.orderStatus === "Ordered").length;
+    const pendingPayments      = D.checkouts.filter(o => o.paymentStatus === "Pending").length;
+    const deliveredOrders      = D.checkouts.filter(o => o.orderStatus === "Delivered").length;
+    const cancelledOrders      = D.checkouts.filter(o => o.orderStatus === "Cancelled").length;
 
-    // Payment status split
-    const payStatusMap = {};
-    D.checkouts.forEach(o => {
-        const s = o.paymentStatus || "Unknown";
-        payStatusMap[s] = (payStatusMap[s] || 0) + 1;
-    });
-    const payStatusColors = { Done: "#38EF91", Pending: "#F7C35F", Failed: "#F75F5F", Refunded: "#A78BFA" };
-    const payStatusData = Object.entries(payStatusMap).map(([name, count]) => ({
-        name, count, color: payStatusColors[name] || "#8896B3",
-    }));
+    const unreadContacts       = D.contacts.filter(c => c.active).length;
+    const approvedTestimonials = D.testimonials.filter(t => t.active).length;
+    const pendingTestimonials  = D.testimonials.filter(t => !t.active).length;
 
-    // Books by category (use populated category name or fallback)
-    const bookCatMap = {};
-    D.books.forEach(b => {
-        const cat = (typeof b.category === "object" ? b.category?.name : b.category) || "Uncategorized";
-        bookCatMap[cat] = (bookCatMap[cat] || 0) + 1;
-    });
-    const bookCatData = Object.entries(bookCatMap).map(([name, count]) => ({ name, count }));
+    // ── Recent orders sorted by date ──────────────────────────────────────────
+    const recentOrders = [...D.checkouts]
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+        .slice(0, 6);
 
-    // Top rated books
-    const topRatedBooks = [...D.books]
-        .filter(b => b.rating > 0)
-        .sort((a, b) => (b.rating || 0) - (a.rating || 0))
+    // ── Low stock: in-stock books with qty ≤ 10 ───────────────────────────────
+    const lowStockBooks = D.books
+        .filter(b => b.stock === true && (b.stockQuantity || 0) <= 10)
+        .sort((a, b) => (a.stockQuantity || 0) - (b.stockQuantity || 0))
         .slice(0, 5);
 
-    const PIE_COLORS = ["#4F8EF7", "#38EFC3", "#A78BFA", "#F7C35F", "#38EF91", "#F97316", "#F75F5F", "#EC4899"];
-    const axis = { fontSize: 11, fill: "#8896B3" };
-    const grid = { stroke: "rgba(255,255,255,0.05)" };
+    // ── Monthly revenue area chart ────────────────────────────────────────────
+    const monthlyMap = {};
+    D.checkouts.filter(c => c.paymentStatus === "Done" && c.createdAt).forEach(c => {
+        const key = new Date(c.createdAt).toLocaleString("en-IN", { month: "short", year: "2-digit" });
+        monthlyMap[key] = (monthlyMap[key] || 0) + (c.total || 0);
+    });
+    const monthlyRevenue = Object.entries(monthlyMap).slice(-7).map(([month, revenue]) => ({ month, revenue }));
 
-    // ── Stat cards ─────────────────────────────────────────────────────────────
+    // ── Order status pie — keys match the Checkout schema enum ───────────────
+    const orderStatusPie = [
+        { name: "Placed",          value: pendingOrders,                                                       fill: "#ffc107" },
+        { name: "Processing",      value: D.checkouts.filter(c => c.orderStatus === "Processing").length,       fill: "#0d6efd" },
+        { name: "Shipped",         value: D.checkouts.filter(c => c.orderStatus === "Shipped").length,          fill: "#6f42c1" },
+        { name: "Out For Delivery",value: D.checkouts.filter(c => c.orderStatus === "Out For Delivery").length, fill: "#0dcaf0" },
+        { name: "Delivered",       value: deliveredOrders,                                                       fill: "#198754" },
+        { name: "Cancelled",       value: cancelledOrders,                                                       fill: "#dc3545" },
+    ].filter(d => d.value > 0);
+
+    // ── Revenue split bar ─────────────────────────────────────────────────────
+    const revenueSplit = [
+        { name: "Collected", revenue: totalRevenue,        fill: "#0d6efd" },
+        { name: "Pending",   revenue: totalRevenuePending, fill: "#ffc107" },
+    ];
+
+    // ── Books per publisher bar ───────────────────────────────────────────────
+    const publisherMap = {};
+    D.books.forEach(b => { const n = b.publisher?.name || "Unknown"; publisherMap[n] = (publisherMap[n] || 0) + 1; });
+    const booksPerPublisher = Object.entries(publisherMap)
+        .sort((a, b) => b[1] - a[1]).slice(0, 6)
+        .map(([name, count]) => ({ name, count }));
+
+    // ── Books per category pie ────────────────────────────────────────────────
+    const catMap = {};
+    D.books.forEach(b => { const n = b.category?.name || "Unknown"; catMap[n] = (catMap[n] || 0) + 1; });
+    const booksPerCategory = Object.entries(catMap)
+        .sort((a, b) => b[1] - a[1])
+        .map(([name, count]) => ({ name, count }));
+
+    // ── Stock status bar ──────────────────────────────────────────────────────
+    const stockData = [
+        { name: "In Stock",     count: inStock,    fill: "#198754" },
+        { name: "Out of Stock", count: outOfStock, fill: "#dc3545" },
+    ];
+
+    // ── Content breakdown bars ────────────────────────────────────────────────
+    const contentBars = [
+        { label: "Books",       count: D.books.length,         to: "/book",        color: "#0d6efd" },
+        { label: "Categories",  count: D.categories.length,    to: "/category",    color: "#198754" },
+        { label: "Sub Cat.",    count: D.subcategories.length, to: "/subcategory", color: "#0dcaf0" },
+        { label: "Publishers",  count: D.publishers.length,    to: "/publisher",   color: "#ffc107" },
+        { label: "Orders",      count: D.checkouts.length,     to: "/checkout",    color: "#6f42c1" },
+        { label: "Subscribers", count: D.newsletters.length,   to: "/newsletter",  color: "#14b8a6" },
+    ];
+    const maxBar = Math.max(...contentBars.map(b => b.count), 1);
+
+    // ── Stat cards ────────────────────────────────────────────────────────────
     const statCards = [
-        { label: "Total Books",    value: D.books.length,         icon: "fa-book",         accent: "#4F8EF7", link: "/book"         },
-        { label: "Categories",     value: D.categories.length,    icon: "fa-layer-group",  accent: "#38EFC3", link: "/category"     },
-        { label: "Subcategories",  value: D.subcategories.length, icon: "fa-tags",         accent: "#A78BFA", link: "/subcategory"  },
-        { label: "Publishers",     value: D.publishers.length,    icon: "fa-building",     accent: "#F7C35F", link: "/publisher"    },
-        { label: "Total Orders",   value: D.checkouts.length,     icon: "fa-shopping-bag", accent: "#38EF91", link: "/checkout"     },
-        { label: "Testimonials",   value: D.testimonials.length,  icon: "fa-star",         accent: "#EC4899", link: "/testimonial"  },
-        { label: "Newsletters",    value: activeNewsletters,      icon: "fa-envelope",     accent: "#F97316", link: "/newsletter"   },
-        { label: "Banners",        value: D.banners.length,       icon: "fa-image",        accent: "#14B8A6", link: "/banner"       },
+        { label: "Total Books",  value: D.books.length,      icon: "bi-book",      variant: "metric-primary", to: "/book"      },
+        { label: "Total Orders", value: D.checkouts.length,  icon: "bi-bag-check", variant: "metric-success", to: "/checkout"  },
+        { label: "Banner Items", value: D.banners.length,    icon: "bi-images",    variant: "metric-warning", to: "/banner"    },
+        { label: "Queries",      value: D.contacts.length,   icon: "bi-headset",   variant: "metric-danger",  to: "/contactUs" },
     ];
 
-    // ── Alert cards ────────────────────────────────────────────────────────────
+    // ── Alert cards ───────────────────────────────────────────────────────────
     const alertCards = [
-        { label: "New Messages",         value: pendingContacts,     icon: "fa-envelope",      color: "#4F8EF7" },
-        { label: "Pending Testimonials", value: pendingTestimonials, icon: "fa-clock",         color: "#F7C35F" },
-        { label: "Out of Stock Books",   value: outOfStockBooks,     icon: "fa-exclamation-triangle", color: "#F75F5F" },
-        { label: "Active Banners",       value: activeBanners,       icon: "fa-image",         color: "#38EF91" },
+        { label: "New Orders",        value: pendingOrders,    icon: "bi-clock-history",      color: "text-warning" },
+        { label: "Pending Payments",  value: pendingPayments,  icon: "bi-credit-card",        color: "text-danger"  },
+        { label: "Unread Messages",   value: unreadContacts,   icon: "bi-envelope",           color: "text-primary" },
+        { label: "Out of Stock",      value: outOfStock,       icon: "bi-exclamation-circle", color: "text-warning" },
     ];
+
+    // ── Quick actions ─────────────────────────────────────────────────────────
+    const quickActions = [
+        { label: "Add Book",       icon: "bi-plus-circle",  to: "/book/create",        color: "#0d6efd" },
+        { label: "Add Category",   icon: "bi-folder-plus",  to: "/category/create",    color: "#198754" },
+        { label: "Add Publisher",  icon: "bi-patch-plus",   to: "/publisher/create",   color: "#ffc107" },
+        { label: "Add Sub-Cat.",   icon: "bi-diagram-3",    to: "/subcategory/create", color: "#0dcaf0" },
+        { label: "View Orders",    icon: "bi-bag-check",    to: "/checkout",           color: "#6f42c1" },
+        { label: "View Banner",    icon: "bi-images",       to: "/banner",             color: "#14b8a6" },
+        { label: "View Messages",  icon: "bi-headset",      to: "/contactUs",          color: "#dc3545" },
+        { label: "Testimonials",   icon: "bi-chat-quote",   to: "/testimonial",        color: "#ec4899" },
+    ];
+
+    const axisStyle = { fontSize: 11, fill: "var(--bs-secondary-color, #6c757d)" };
+    const gridStyle = { stroke: "var(--bs-border-color, rgba(0,0,0,.1))", strokeDasharray: "3 3" };
+    const PIE_COLORS = ["#0d6efd", "#198754", "#0dcaf0", "#ffc107", "#dc3545", "#6f42c1"];
 
     return (
-        <>
-        <style>{`
-            .hm-root {
-                padding: 28px 24px 80px; max-width: 1280px;
-                margin: 0 auto; width: 100%;
-                opacity: 0; transform: translateY(14px);
-                transition: opacity .45s ease, transform .45s ease;
-            }
-            .hm-root.hm-loaded { opacity: 1; transform: none; }
-            .hm-sample-banner {
-                display: flex; align-items: center; gap: 10px;
-                background: rgba(247,195,95,0.1);
-                border: 1px solid rgba(247,195,95,0.3);
-                border-radius: 10px; padding: 10px 16px;
-                font-size: 13px; color: #F7C35F; margin-bottom: 20px;
-                animation: hmFadeUp .4s ease;
-            }
-            @keyframes hmFadeUp {
-                from { opacity:0; transform:translateY(8px); }
-                to   { opacity:1; transform:none; }
-            }
-            .hm-header {
-                display: flex; align-items: flex-start;
-                justify-content: space-between; flex-wrap: wrap;
-                gap: 12px; margin-bottom: 22px;
-            }
-            .hm-title {
-                font-family: 'Syne', sans-serif;
-                font-size: 24px; font-weight: 800;
-                color: var(--text-primary); letter-spacing: -.02em; margin: 0;
-            }
-            .hm-subtitle { font-size: 13px; color: var(--text-secondary); margin: 3px 0 0; }
-            .hm-date {
-                font-size: 12.5px; color: var(--text-muted);
-                background: var(--bg-card); border: 1px solid var(--border);
-                border-radius: 8px; padding: 7px 14px;
-                display: flex; align-items: center; gap: 7px;
-            }
+        <main className="dashboard-content">
+            <div className="container-fluid px-3 px-lg-4 py-4">
 
-            /* ── Overview banner ── */
-            .hm-rev-banner {
-                background: linear-gradient(135deg, #0d1d46 0%, #0a1530 60%, #061020 100%);
-                border: 1px solid var(--border-accent);
-                border-radius: 16px; padding: 22px 28px;
-                margin-bottom: 20px; position: relative; overflow: hidden;
-            }
-            .hm-rev-banner::before {
-                content:''; position:absolute; inset:0;
-                background: radial-gradient(ellipse at 10% 50%, rgba(79,142,247,.1) 0%, transparent 60%),
-                            radial-gradient(ellipse at 90% 50%, rgba(56,239,195,.07) 0%, transparent 60%);
-            }
-            .hm-rev-inner {
-                display: flex; align-items: center;
-                justify-content: space-between; flex-wrap: wrap; gap: 16px; position: relative;
-            }
-            .hm-rev-label {
-                font-size: 12px; text-transform: uppercase; letter-spacing: .08em;
-                color: var(--text-secondary); margin-bottom: 6px; font-weight: 700;
-            }
-            .hm-rev-value {
-                font-family: 'Syne', sans-serif;
-                font-size: 34px; font-weight: 800;
-                color: var(--text-primary); letter-spacing: -.02em;
-            }
-            .hm-rev-icon {
-                width: 54px; height: 54px;
-                background: linear-gradient(135deg, var(--accent), #3a7de0);
-                border-radius: 14px;
-                display: flex; align-items: center; justify-content: center;
-                font-size: 22px; color: #fff;
-                box-shadow: 0 8px 24px rgba(79,142,247,.4);
-            }
-            .hm-rev-sub {
-                display: flex; align-items: center; flex-wrap: wrap; gap: 20px;
-                margin-top: 14px; padding-top: 14px;
-                border-top: 1px solid rgba(255,255,255,.06); position: relative;
-            }
-            .hm-rev-sub span { font-size: 12.5px; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; }
-            .hm-rev-sub span i { color: var(--accent); }
-
-            /* ── Stat grid ── */
-            .hm-stat-grid {
-                display: grid; grid-template-columns: repeat(4, 1fr);
-                gap: 14px; margin-bottom: 14px;
-            }
-            .hm-stat-card {
-                background: var(--bg-surface); border: 1px solid var(--border);
-                border-radius: 14px; padding: 16px 18px;
-                display: flex; align-items: center; gap: 14px;
-                text-decoration: none; transition: var(--transition);
-                animation: hmFadeUp .4s ease both;
-                position: relative; overflow: hidden;
-            }
-            .hm-stat-card::after {
-                content:''; position:absolute; bottom:0; left:0; right:0; height: 2px;
-                background: var(--card-accent, var(--accent));
-                transform: scaleX(0); transform-origin: left; transition: transform .3s ease;
-            }
-            .hm-stat-card:hover { background: var(--bg-hover); transform: translateY(-2px); }
-            .hm-stat-card:hover::after { transform: scaleX(1); }
-            .hm-stat-icon {
-                width: 42px; height: 42px; border-radius: 11px;
-                display: flex; align-items: center; justify-content: center;
-                font-size: 16px; flex-shrink: 0;
-            }
-            .hm-stat-value {
-                font-family: 'Syne', sans-serif; font-size: 24px; font-weight: 800;
-                color: var(--text-primary); display: block; line-height: 1;
-            }
-            .hm-stat-label { font-size: 11.5px; color: var(--text-secondary); display: block; margin-top: 3px; font-weight: 600; }
-            .hm-stat-arrow { margin-left: auto; color: var(--text-muted); font-size: 12px; }
-
-            /* ── Alert grid ── */
-            .hm-alert-grid {
-                display: grid; grid-template-columns: repeat(4, 1fr);
-                gap: 14px; margin-bottom: 20px;
-            }
-            .hm-alert-card {
-                background: var(--bg-surface); border: 1px solid var(--border);
-                border-radius: 12px; padding: 14px 16px;
-                display: flex; align-items: center; gap: 12px;
-                animation: hmFadeUp .4s ease both;
-            }
-            .hm-alert-val { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; line-height: 1; }
-            .hm-alert-lbl { font-size: 12px; color: var(--text-secondary); font-weight: 600; }
-
-            /* ── Chart cards ── */
-            .hm-card {
-                background: var(--bg-surface); border: 1px solid var(--border);
-                border-radius: 14px; padding: 20px; animation: hmFadeUp .45s ease both;
-            }
-            .hm-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
-            .hm-card-title {
-                font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700;
-                color: var(--text-primary); margin: 0; display: flex; align-items: center; gap: 8px;
-            }
-            .hm-card-title i { color: var(--accent); font-size: 13px; }
-            .hm-card-link { font-size: 12px; color: var(--accent); text-decoration: none; font-weight: 600; transition: color .2s; }
-            .hm-card-link:hover { color: var(--accent-2); }
-            .hm-empty { font-size: 13px; color: var(--text-muted); text-align: center; padding: 28px 0; font-style: italic; }
-
-            /* ── Layouts ── */
-            .hm-row-wide   { display: grid; grid-template-columns: 1.6fr 1fr; gap: 16px; margin-bottom: 16px; }
-            .hm-row-three  { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px; }
-            .hm-row-two    { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
-            .hm-row-bottom { display: grid; grid-template-columns: 1.4fr 1fr; gap: 16px; margin-bottom: 16px; }
-
-            /* ── Tables ── */
-            .hm-table-wrap { overflow-x: auto; margin: 0 -4px; padding: 0 4px; }
-            .hm-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-            .hm-table thead tr th {
-                background: var(--bg-card); color: var(--text-muted); font-size: 10.5px;
-                text-transform: uppercase; letter-spacing: .07em; font-weight: 700;
-                padding: 10px 14px; border-bottom: 1px solid var(--border); white-space: nowrap;
-            }
-            .hm-table tbody tr { border-bottom: 1px solid var(--border); transition: background .15s; }
-            .hm-table tbody tr:last-child { border-bottom: none; }
-            .hm-table tbody tr:hover { background: var(--bg-hover); }
-            .hm-table tbody td { padding: 11px 14px; vertical-align: middle; color: var(--text-secondary); white-space: nowrap; }
-            .hm-table tbody tr:hover td { color: var(--text-primary); }
-
-            /* ── Badges ── */
-            .hm-badge {
-                display: inline-block; padding: 3px 10px; border-radius: 20px;
-                font-size: 11px; font-weight: 700;
-                background: var(--bg-card); color: var(--text-muted); border: 1px solid var(--border);
-            }
-            .hm-badge--success { background:rgba(56,239,145,.12); color:#38EF91; border-color:rgba(56,239,145,.25); }
-            .hm-badge--warn    { background:rgba(247,195,95,.12);  color:#F7C35F; border-color:rgba(247,195,95,.25); }
-            .hm-badge--info    { background:rgba(79,142,247,.12);  color:#4F8EF7; border-color:rgba(79,142,247,.25); }
-            .hm-badge--danger  { background:rgba(247,95,95,.12);   color:#F75F5F; border-color:rgba(247,95,95,.25);  }
-            .hm-badge--purple  { background:rgba(167,139,250,.12); color:#A78BFA; border-color:rgba(167,139,250,.25); }
-
-            /* ── Quick actions ── */
-            .hm-quick-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
-            .hm-quick-btn {
-                display: flex; align-items: center; gap: 10px;
-                background: var(--bg-card); border: 1px solid var(--border);
-                border-radius: 10px; padding: 10px 12px;
-                color: var(--text-secondary); font-size: 12.5px; font-weight: 600;
-                text-decoration: none; transition: var(--transition);
-                border-left: 3px solid var(--q-color, var(--accent));
-            }
-            .hm-quick-btn:hover { background: var(--bg-hover); color: var(--text-primary); transform: translateX(2px); }
-            .hm-quick-btn i { font-size: 13px; width: 16px; text-align: center; }
-
-            /* ── Responsive ── */
-            @media (max-width: 900px) {
-                .hm-stat-grid  { grid-template-columns: repeat(2,1fr); }
-                .hm-alert-grid { grid-template-columns: repeat(2,1fr); }
-                .hm-row-wide   { grid-template-columns: 1fr; }
-                .hm-row-three  { grid-template-columns: 1fr 1fr; }
-                .hm-row-bottom { grid-template-columns: 1fr; }
-                .hm-row-two    { grid-template-columns: 1fr; }
-            }
-            @media (max-width: 600px) {
-                .hm-stat-grid  { grid-template-columns: repeat(2,1fr); }
-                .hm-alert-grid { grid-template-columns: repeat(2,1fr); }
-                .hm-row-three  { grid-template-columns: 1fr; }
-                .hm-rev-value  { font-size: 26px; }
-            }
-        `}</style>
-
-        <div className={`hm-root ${loaded ? "hm-loaded" : ""}`}>
-
-            {usingSample && (
-                <div className="hm-sample-banner">
-                    <i className="fas fa-flask"></i>
-                    <strong>Preview mode —</strong> showing sample data because the API returned no records.
-                </div>
-            )}
-
-            {/* ── Header ── */}
-            <div className="hm-header">
-                <div>
-                    <h1 className="hm-title p-2 bg-primary text-light">Dashboard</h1>
-                    <p className="hm-subtitle">Welcome back, Admin — here's your bookstore at a glance.</p>
-                </div>
-                <span className="hm-date">
-                    <i className="fas fa-calendar-alt"></i>
-                    {new Date().toLocaleDateString("en-IN", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
-                </span>
-            </div>
-
-            {/* ── Overview banner ── */}
-            <div className="hm-rev-banner">
-                <div className="hm-rev-inner">
-                    <div>
-                        <p className="hm-rev-label">Total Revenue (Paid Orders)</p>
-                        <p className="hm-rev-value">{currency(totalRevenue)}</p>
-                    </div>
-                    <div className="hm-rev-icon"><i className="fas fa-rupee-sign"></i></div>
-                </div>
-                <div className="hm-rev-sub">
-                    <span><i className="fas fa-book"></i> Books: <strong>{D.books.length}</strong> ({featuredBooks} featured)</span>
-                    <span><i className="fas fa-shopping-bag"></i> Orders: <strong>{D.checkouts.length}</strong></span>
-                    <span><i className="fas fa-box-open"></i> Out of Stock: <strong>{outOfStockBooks}</strong></span>
-                    <span><i className="fas fa-envelope-open"></i> Newsletter: <strong>{activeNewsletters}</strong> subs</span>
-                    <span><i className="fas fa-star"></i> Approved Testimonials: <strong>{activeTestimonials}</strong></span>
-                </div>
-            </div>
-
-            {/* ── Stat cards ── */}
-            <div className="hm-stat-grid">
-                {statCards.map((c, i) => (
-                    <Link to={c.link} key={i} className="hm-stat-card"
-                        style={{ "--card-accent": c.accent, animationDelay: `${i * .05}s` }}>
-                        <div className="hm-stat-icon" style={{ background: c.accent + "22", color: c.accent }}>
-                            <i className={`fas ${c.icon}`}></i>
-                        </div>
+                {/* ── Page heading ── */}
+                <div className="page-heading mb-4">
+                    <div className="page-heading-copy">
+                        <span className="page-icon">
+                            <i className="bi bi-speedometer2" aria-hidden="true"></i>
+                        </span>
                         <div>
-                            <span className="hm-stat-value">{c.value}</span>
-                            <span className="hm-stat-label">{c.label}</span>
+                            <p className="eyebrow mb-1">Overview</p>
+                            <h1 className="h3 mb-1">Dashboard</h1>
+                            <p className="text-muted mb-0">
+                                {new Date().toLocaleDateString("en-IN", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
+                            </p>
                         </div>
-                        <div className="hm-stat-arrow"><i className="fas fa-arrow-right"></i></div>
-                    </Link>
-                ))}
-            </div>
+                    </div>
+                </div>
 
-            {/* ── Alert cards ── */}
-            <div className="hm-alert-grid">
-                {alertCards.map((c, i) => (
-                    <div key={i} className="hm-alert-card" style={{ animationDelay: `${.4 + i * .07}s` }}>
-                        <i className={`fas ${c.icon}`} style={{ color: c.color, fontSize: 18 }}></i>
+                {/* ── Sample banner ── */}
+                {usingSample && (
+                    <div className="alert alert-warning d-flex align-items-center gap-2 mb-4" role="alert">
+                        <i className="bi bi-flask"></i>
+                        <span><strong>Preview mode —</strong> showing sample data. API returned no records yet.</span>
+                    </div>
+                )}
+
+                {/* ── Revenue banner ── */}
+                <div className="panel mb-3" style={{ background: "linear-gradient(135deg, var(--bs-primary) 0%, #0a3880 100%)", border: "none" }}>
+                    <div className="d-flex align-items-center justify-content-between flex-wrap gap-3">
                         <div>
-                            <div className="hm-alert-val" style={{ color: c.color }}>{c.value}</div>
-                            <div className="hm-alert-lbl">{c.label}</div>
+                            <p className="text-white-50 mb-1" style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: ".07em", fontWeight: 700 }}>Total Revenue Collected</p>
+                            <p className="text-white mb-0" style={{ fontSize: 32, fontWeight: 800, letterSpacing: "-.02em" }}>
+                                {fmt(totalRevenue)}
+                            </p>
+                        </div>
+                        <div className="d-flex align-items-center justify-content-center rounded-3"
+                            style={{ width: 54, height: 54, background: "rgba(255,255,255,.15)", fontSize: 22, color: "#fff" }}>
+                            <i className="bi bi-graph-up-arrow"></i>
                         </div>
                     </div>
-                ))}
-            </div>
-
-            {/* ── Order status chart + Payment mode pie ── */}
-            <div className="hm-row-wide">
-                <div className="hm-card">
-                    <div className="hm-card-header">
-                        <h2 className="hm-card-title"><i className="fas fa-shopping-bag"></i> Orders by Status</h2>
-                        <Link to="/checkout" className="hm-card-link">View all</Link>
-                    </div>
-                    {orderStatusData.length === 0
-                        ? <p className="hm-empty">No orders yet.</p>
-                        : <ResponsiveContainer width="100%" height={220}>
-                            <BarChart data={orderStatusData} margin={{ top: 10, right: 10, left: 0, bottom: 40 }} barSize={32}>
-                                <CartesianGrid strokeDasharray="3 3" {...grid} />
-                                <XAxis dataKey="name" tick={{ ...axis, fontSize: 9.5 }}
-                                    axisLine={false} tickLine={false} angle={-20} textAnchor="end" interval={0} />
-                                <YAxis tick={axis} axisLine={false} tickLine={false} allowDecimals={false} />
-                                <Tooltip content={<DashTooltip />} />
-                                <Bar dataKey="count" name="Orders" radius={[6, 6, 0, 0]}>
-                                    {orderStatusData.map((_, i) => (
-                                        <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                                    ))}
-                                </Bar>
-                            </BarChart>
-                        </ResponsiveContainer>
-                    }
-                </div>
-                <div className="hm-card">
-                    <div className="hm-card-header">
-                        <h2 className="hm-card-title"><i className="fas fa-credit-card"></i> Payment Mode</h2>
-                        <Link to="/checkout" className="hm-card-link">View all</Link>
-                    </div>
-                    {paymentModeData.length === 0
-                        ? <p className="hm-empty">No orders yet.</p>
-                        : <ResponsiveContainer width="100%" height={220}>
-                            <PieChart>
-                                <Pie data={paymentModeData} dataKey="value" nameKey="name"
-                                    cx="50%" cy="50%" innerRadius={50} outerRadius={78}
-                                    paddingAngle={3} strokeWidth={0}>
-                                    {paymentModeData.map((e, i) => <Cell key={i} fill={e.color} />)}
-                                </Pie>
-                                <Tooltip content={<DashTooltip />} />
-                                <Legend iconType="circle" iconSize={8}
-                                    formatter={v => <span style={{ fontSize: 11, color: "#8896B3" }}>{v}</span>} />
-                            </PieChart>
-                        </ResponsiveContainer>
-                    }
-                </div>
-            </div>
-
-            {/* ── 3-col: books by category + payment status + testimonial status ── */}
-            <div className="hm-row-three">
-                <div className="hm-card">
-                    <div className="hm-card-header">
-                        <h2 className="hm-card-title"><i className="fas fa-layer-group"></i> Books by Category</h2>
-                    </div>
-                    {bookCatData.length === 0
-                        ? <p className="hm-empty">No data yet.</p>
-                        : <ResponsiveContainer width="100%" height={200}>
-                            <PieChart>
-                                <Pie data={bookCatData} dataKey="count" nameKey="name"
-                                    cx="50%" cy="44%" outerRadius={68} paddingAngle={4} strokeWidth={0}>
-                                    {bookCatData.map((e, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
-                                </Pie>
-                                <Tooltip content={<DashTooltip />} />
-                                <Legend iconType="circle" iconSize={8}
-                                    formatter={v => <span style={{ fontSize: 10, color: "#8896B3" }}>{v}</span>} />
-                            </PieChart>
-                        </ResponsiveContainer>
-                    }
-                </div>
-                <div className="hm-card">
-                    <div className="hm-card-header">
-                        <h2 className="hm-card-title"><i className="fas fa-receipt"></i> Payment Status</h2>
-                    </div>
-                    {payStatusData.length === 0
-                        ? <p className="hm-empty">No orders yet.</p>
-                        : <ResponsiveContainer width="100%" height={200}>
-                            <BarChart data={payStatusData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }} barSize={36}>
-                                <CartesianGrid strokeDasharray="3 3" {...grid} />
-                                <XAxis dataKey="name" tick={{ ...axis, fontSize: 10 }} axisLine={false} tickLine={false} />
-                                <YAxis tick={axis} axisLine={false} tickLine={false} allowDecimals={false} />
-                                <Tooltip content={<DashTooltip />} />
-                                <Bar dataKey="count" name="Orders" radius={[6, 6, 0, 0]}>
-                                    {payStatusData.map((e, i) => <Cell key={i} fill={e.color} />)}
-                                </Bar>
-                            </BarChart>
-                        </ResponsiveContainer>
-                    }
-                </div>
-                <div className="hm-card">
-                    <div className="hm-card-header">
-                        <h2 className="hm-card-title"><i className="fas fa-star"></i> Testimonials</h2>
-                        <Link to="/testimonial" className="hm-card-link">View all</Link>
-                    </div>
-                    {D.testimonials.length === 0
-                        ? <p className="hm-empty">No testimonials yet.</p>
-                        : <ResponsiveContainer width="100%" height={200}>
-                            <PieChart>
-                                <Pie
-                                    data={[
-                                        { name: "Approved", value: activeTestimonials,  color: "#38EF91" },
-                                        { name: "Pending",  value: pendingTestimonials, color: "#F7C35F" },
-                                    ].filter(d => d.value > 0)}
-                                    dataKey="value" nameKey="name"
-                                    cx="50%" cy="44%" innerRadius={46} outerRadius={68}
-                                    paddingAngle={3} strokeWidth={0}>
-                                    {[{ color: "#38EF91" }, { color: "#F7C35F" }].map((e, i) => <Cell key={i} fill={e.color} />)}
-                                </Pie>
-                                <Tooltip content={<DashTooltip />} />
-                                <Legend iconType="circle" iconSize={8}
-                                    formatter={v => <span style={{ fontSize: 10, color: "#8896B3" }}>{v}</span>} />
-                            </PieChart>
-                        </ResponsiveContainer>
-                    }
-                </div>
-            </div>
-
-            {/* ── Top rated books + Recent messages ── */}
-            <div className="hm-row-two">
-                <div className="hm-card">
-                    <div className="hm-card-header">
-                        <h2 className="hm-card-title"><i className="fas fa-trophy"></i> Top Rated Books</h2>
-                        <Link to="/book" className="hm-card-link">View all</Link>
-                    </div>
-                    {topRatedBooks.length === 0
-                        ? <p className="hm-empty">No rated books yet.</p>
-                        : <div className="hm-table-wrap">
-                            <table className="hm-table">
-                                <thead>
-                                    <tr><th>#</th><th>Title</th><th>Rating</th><th>Stock</th><th>Status</th></tr>
-                                </thead>
-                                <tbody>
-                                    {topRatedBooks.map((b, i) => (
-                                        <tr key={i}>
-                                            <td style={{ color: "var(--text-muted)", fontSize: 11 }}>#{i + 1}</td>
-                                            <td style={{ color: "var(--text-primary)", fontWeight: 600 }}>{b.title || "—"}</td>
-                                            <td>
-                                                <span style={{ color: "#F7C35F", fontWeight: 700 }}>
-                                                    ★ {b.rating?.toFixed(1) || "—"}
-                                                </span>
-                                            </td>
-                                            <td style={{ color: (b.stock ?? 1) === 0 ? "#F75F5F" : "var(--text-secondary)" }}>
-                                                {b.stock ?? "—"}
-                                            </td>
-                                            <td>
-                                                <span className={`hm-badge ${b.active ? "hm-badge--success" : "hm-badge--danger"}`}>
-                                                    {b.active ? "Active" : "Inactive"}
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    }
-                </div>
-
-                <div className="hm-card">
-                    <div className="hm-card-header">
-                        <h2 className="hm-card-title"><i className="fas fa-envelope"></i> Recent Messages</h2>
-                        <Link to="/contactus" className="hm-card-link">View all</Link>
-                    </div>
-                    {D.contacts.length === 0
-                        ? <p className="hm-empty">No messages yet.</p>
-                        : <div className="hm-table-wrap">
-                            <table className="hm-table">
-                                <thead><tr><th>Name</th><th>Subject</th><th>Status</th></tr></thead>
-                                <tbody>
-                                    {D.contacts.slice(0, 5).map((c, i) => (
-                                        <tr key={i}>
-                                            <td style={{ color: "var(--text-primary)", fontWeight: 600 }}>{c.name || "—"}</td>
-                                            <td>{c.subject || "—"}</td>
-                                            <td>
-                                                <span className={`hm-badge ${c.active ? "hm-badge--warn" : "hm-badge--success"}`}>
-                                                    {c.active ? "Unread" : "Read"}
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    }
-                </div>
-            </div>
-
-            {/* ── Recent orders + Quick actions ── */}
-            <div className="hm-row-bottom">
-                <div className="hm-card">
-                    <div className="hm-card-header">
-                        <h2 className="hm-card-title"><i className="fas fa-list-alt"></i> Recent Orders</h2>
-                        <Link to="/checkout" className="hm-card-link">View all</Link>
-                    </div>
-                    {D.checkouts.length === 0
-                        ? <p className="hm-empty">No orders yet.</p>
-                        : <div className="hm-table-wrap">
-                            <table className="hm-table">
-                                <thead>
-                                    <tr><th>#</th><th>Order Status</th><th>Payment</th><th>Mode</th><th>Total</th></tr>
-                                </thead>
-                                <tbody>
-                                    {D.checkouts.slice(0, 6).map((o, i) => {
-                                        const statusBadge = {
-                                            Delivered:        "hm-badge--success",
-                                            Cancelled:        "hm-badge--danger",
-                                            Ordered:          "hm-badge--info",
-                                            Processing:       "hm-badge--warn",
-                                            Shipped:          "hm-badge--purple",
-                                            "Out For Delivery":"hm-badge--info",
-                                        }[o.orderStatus] || "";
-                                        const payBadge = {
-                                            Done:     "hm-badge--success",
-                                            Pending:  "hm-badge--warn",
-                                            Failed:   "hm-badge--danger",
-                                            Refunded: "hm-badge--purple",
-                                        }[o.paymentStatus] || "";
-                                        return (
-                                            <tr key={i}>
-                                                <td style={{ color: "var(--text-muted)", fontSize: 11 }}>#{i + 1}</td>
-                                                <td><span className={`hm-badge ${statusBadge}`}>{o.orderStatus || "—"}</span></td>
-                                                <td><span className={`hm-badge ${payBadge}`}>{o.paymentStatus || "—"}</span></td>
-                                                <td style={{ color: "var(--text-secondary)" }}>{o.paymentMode || "—"}</td>
-                                                <td style={{ color: "var(--text-primary)", fontWeight: 700 }}>{currency(o.total)}</td>
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
-                        </div>
-                    }
-                </div>
-
-                <div className="hm-card">
-                    <div className="hm-card-header">
-                        <h2 className="hm-card-title"><i className="fas fa-bolt"></i> Quick Actions</h2>
-                    </div>
-
-                    <div className="hm-quick-grid">
+                    <div className="d-flex flex-wrap gap-3 mt-3 pt-3" style={{ borderTop: "1px solid rgba(255,255,255,.15)" }}>
                         {[
-                            { label: "Add Book",        icon: "fa-book",         link: "/book/create",        color: "#4F8EF7" },
-                            { label: "Add Category",    icon: "fa-layer-group",  link: "/category/create",    color: "#38EFC3" },
-                            { label: "Add Subcategory", icon: "fa-tags",         link: "/subcategory/create", color: "#A78BFA" },
-                            { label: "Add Publisher",   icon: "fa-building",     link: "/publisher/create",   color: "#F7C35F" },
-                            { label: "Add Banner",      icon: "fa-image",        link: "/banner/create",      color: "#38EF91" },
-                            { label: "View Orders",     icon: "fa-shopping-bag", link: "/checkout",           color: "#F97316" },
-                            { label: "View Messages",   icon: "fa-envelope",     link: "/contactus",          color: "#F75F5F" },
-                            { label: "Testimonials",    icon: "fa-star",         link: "/testimonial",        color: "#EC4899" },
-                        ].map((q, i) => (
-                            <Link to={q.link} key={i} className="hm-quick-btn" style={{ "--q-color": q.color }}>
-                                <i className={`fas ${q.icon}`} style={{ color: q.color }}></i>
-                                <span>{q.label}</span>
-                            </Link>
+                            { icon: "bi-check-circle",   label: `Collected: ${fmt(totalRevenue)}`         },
+                            { icon: "bi-clock",          label: `Pending: ${fmt(totalRevenuePending)}`    },
+                            { icon: "bi-bag-check",      label: `${deliveredOrders} Delivered`            },
+                            { icon: "bi-x-circle",       label: `${cancelledOrders} Cancelled`            },
+                            { icon: "bi-book",           label: `${D.books.length} Books`                 },
+                            { icon: "bi-envelope-paper", label: `${D.newsletters.length} Subscribers`     },
+                        ].map((s, i) => (
+                            <span key={i} className="text-white-50 d-flex align-items-center gap-2" style={{ fontSize: 13 }}>
+                                <i className={`bi ${s.icon} text-white`}></i> {s.label}
+                            </span>
                         ))}
                     </div>
+                </div>
 
-                    <div style={{ borderTop: "1px solid var(--border)", paddingTop: 14, display: "flex", flexDirection: "column", gap: 10 }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                            <span style={{ fontSize: 13, color: "var(--text-secondary)", display: "flex", alignItems: "center", gap: 7 }}>
-                                <i className="fas fa-envelope-open" style={{ color: "var(--accent)" }}></i> Newsletter Subscribers
-                            </span>
-                            <Link to="/newsletter" className="hm-card-link"><strong>{activeNewsletters}</strong> active</Link>
+                {/* ── Stat cards ── */}
+                <section className="row g-3 mb-3">
+                    {statCards.map((c, i) => (
+                        <div key={i} className="col-12 col-sm-6 col-xl-3">
+                            <Link to={c.to} style={{ textDecoration: "none" }}>
+                                <article className={`metric-card ${c.variant}`}>
+                                    <div className="metric-top">
+                                        <span className="metric-label">{c.label}</span>
+                                        <span className="metric-icon"><i className={`bi ${c.icon}`} aria-hidden="true"></i></span>
+                                    </div>
+                                    <div className="metric-value">{c.value}</div>
+                                    <div className="metric-meta"><span className="text-muted">total records</span></div>
+                                </article>
+                            </Link>
                         </div>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                            <span style={{ fontSize: 13, color: "var(--text-secondary)", display: "flex", alignItems: "center", gap: 7 }}>
-                                <i className="fas fa-book" style={{ color: "#38EFC3" }}></i> Featured Books
-                            </span>
-                            <Link to="/book" className="hm-card-link"><strong>{featuredBooks}</strong> featured</Link>
+                    ))}
+                </section>
+
+                {/* ── Alert cards ── */}
+                <div className="row g-3 mb-3">
+                    {alertCards.map((c, i) => (
+                        <div key={i} className="col-12 col-sm-6 col-xl-3">
+                            <div className="panel d-flex align-items-center gap-3 py-3">
+                                <span className={`fs-4 ${c.color}`}><i className={`bi ${c.icon}`}></i></span>
+                                <div>
+                                    <div className="fw-bold fs-5">{c.value}</div>
+                                    <div className="text-muted small">{c.label}</div>
+                                </div>
+                            </div>
                         </div>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                            <span style={{ fontSize: 13, color: "var(--text-secondary)", display: "flex", alignItems: "center", gap: 7 }}>
-                                <i className="fas fa-box-open" style={{ color: "#F75F5F" }}></i> Out of Stock
-                            </span>
-                            <Link to="/book" className="hm-card-link"><strong>{outOfStockBooks}</strong> books</Link>
+                    ))}
+                </div>
+
+                {/* ── Monthly Revenue (area) + Order Status (pie) ── */}
+                <div className="row g-3 mb-3">
+                    <div className="col-12 col-xl-7">
+                        <div className="panel h-100">
+                            <div className="panel-header">
+                                <div>
+                                    <h2 className="h5 mb-1 section-title">
+                                        <i className="bi bi-graph-up" aria-hidden="true"></i>
+                                        <span>Monthly Revenue Trend</span>
+                                    </h2>
+                                    <p className="text-muted mb-0">Completed orders only</p>
+                                </div>
+                                <span className="badge text-bg-secondary" style={{ fontSize: 11 }}>Last 7 months</span>
+                            </div>
+                            {monthlyRevenue.length === 0
+                                ? <p className="text-muted text-center py-4">No revenue data yet.</p>
+                                : <ResponsiveContainer width="100%" height={220}>
+                                    <AreaChart data={monthlyRevenue} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                                        <defs>
+                                            <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%"  stopColor="#0d6efd" stopOpacity={0.3} />
+                                                <stop offset="95%" stopColor="#0d6efd" stopOpacity={0.02} />
+                                            </linearGradient>
+                                        </defs>
+                                        <CartesianGrid {...gridStyle} />
+                                        <XAxis dataKey="month" tick={axisStyle} axisLine={false} tickLine={false} />
+                                        <YAxis tick={axisStyle} axisLine={false} tickLine={false}
+                                            tickFormatter={v => "₹" + (v >= 1000 ? (v / 1000).toFixed(0) + "k" : v)} />
+                                        <Tooltip content={<DashTooltip />} />
+                                        <Area type="monotone" dataKey="revenue" name="Revenue"
+                                            stroke="#0d6efd" strokeWidth={2.5} fill="url(#revGrad)"
+                                            dot={{ fill: "#0d6efd", r: 4, strokeWidth: 0 }}
+                                            activeDot={{ r: 6, fill: "#6ea8fe" }} />
+                                    </AreaChart>
+                                </ResponsiveContainer>
+                            }
+                        </div>
+                    </div>
+
+                    <div className="col-12 col-xl-5">
+                        <div className="panel h-100">
+                            <div className="panel-header">
+                                <div>
+                                    <h2 className="h5 mb-1 section-title">
+                                        <i className="bi bi-bag-check" aria-hidden="true"></i>
+                                        <span>Order Status</span>
+                                    </h2>
+                                    <p className="text-muted mb-0">All statuses</p>
+                                </div>
+                                <Link to="/checkout" className="btn btn-light btn-sm">View all</Link>
+                            </div>
+                            {orderStatusPie.length === 0
+                                ? <p className="text-muted text-center py-4">No orders yet.</p>
+                                : <ResponsiveContainer width="100%" height={220}>
+                                    <PieChart>
+                                        <Pie data={orderStatusPie} dataKey="value" nameKey="name"
+                                            cx="50%" cy="50%" innerRadius={50} outerRadius={78}
+                                            paddingAngle={3} strokeWidth={0}>
+                                            {orderStatusPie.map((e, i) => <Cell key={i} fill={e.fill} />)}
+                                        </Pie>
+                                        <Tooltip content={<DashTooltip />} />
+                                        <Legend iconType="circle" iconSize={8}
+                                            formatter={v => <span style={{ fontSize: 11, color: "var(--bs-secondary-color)" }}>{v}</span>} />
+                                    </PieChart>
+                                </ResponsiveContainer>
+                            }
                         </div>
                     </div>
                 </div>
-            </div>
 
-        </div>
-        </>
+                {/* ── Revenue Split + Payment Modes + Stock Status ── */}
+                <div className="row g-3 mb-3">
+                    <div className="col-12 col-xl-4">
+                        <div className="panel h-100">
+                            <div className="panel-header">
+                                <div>
+                                    <h2 className="h5 mb-1 section-title">
+                                        <i className="bi bi-bar-chart-line" aria-hidden="true"></i>
+                                        <span>Revenue Split</span>
+                                    </h2>
+                                    <p className="text-muted mb-0">Collected vs Pending</p>
+                                </div>
+                            </div>
+                            <ResponsiveContainer width="100%" height={200}>
+                                <BarChart data={revenueSplit} margin={{ top: 10, right: 10, left: 0, bottom: 0 }} barSize={44}>
+                                    <CartesianGrid {...gridStyle} />
+                                    <XAxis dataKey="name" tick={{ ...axisStyle, fontSize: 10 }} axisLine={false} tickLine={false} />
+                                    <YAxis tick={axisStyle} axisLine={false} tickLine={false}
+                                        tickFormatter={v => "₹" + (v >= 1000 ? (v / 1000).toFixed(0) + "k" : v)} />
+                                    <Tooltip content={<DashTooltip />} />
+                                    <Bar dataKey="revenue" name="Revenue" radius={[6, 6, 0, 0]}>
+                                        {revenueSplit.map((e, i) => <Cell key={i} fill={e.fill} />)}
+                                    </Bar>
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+
+                    <div className="col-12 col-xl-4">
+                        <div className="panel h-100">
+                            <div className="panel-header">
+                                <div>
+                                    <h2 className="h5 mb-1 section-title">
+                                        <i className="bi bi-credit-card" aria-hidden="true"></i>
+                                        <span>Payment Modes</span>
+                                    </h2>
+                                    <p className="text-muted mb-0">Orders by payment type</p>
+                                </div>
+                            </div>
+                            {(() => {
+                                const modeMap = {};
+                                D.checkouts.forEach(c => { const m = c.paymentMode || "COD"; modeMap[m] = (modeMap[m] || 0) + 1; });
+                                const modeData = Object.entries(modeMap).map(([name, count]) => ({ name, count }));
+                                return modeData.length === 0
+                                    ? <p className="text-muted text-center py-4">No data yet.</p>
+                                    : <ResponsiveContainer width="100%" height={200}>
+                                        <BarChart data={modeData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }} barSize={36}>
+                                            <CartesianGrid {...gridStyle} />
+                                            <XAxis dataKey="name" tick={axisStyle} axisLine={false} tickLine={false} />
+                                            <YAxis tick={axisStyle} axisLine={false} tickLine={false} allowDecimals={false} />
+                                            <Tooltip content={<DashTooltip />} />
+                                            <Bar dataKey="count" name="Orders" fill="#6f42c1" radius={[6, 6, 0, 0]} />
+                                        </BarChart>
+                                    </ResponsiveContainer>;
+                            })()}
+                        </div>
+                    </div>
+
+                    <div className="col-12 col-xl-4">
+                        <div className="panel h-100">
+                            <div className="panel-header">
+                                <div>
+                                    <h2 className="h5 mb-1 section-title">
+                                        <i className="bi bi-boxes" aria-hidden="true"></i>
+                                        <span>Stock Status</span>
+                                    </h2>
+                                    <p className="text-muted mb-0">In stock vs out of stock</p>
+                                </div>
+                                <Link to="/book" className="btn btn-light btn-sm">View all</Link>
+                            </div>
+                            <ResponsiveContainer width="100%" height={200}>
+                                <BarChart data={stockData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }} barSize={44}>
+                                    <CartesianGrid {...gridStyle} />
+                                    <XAxis dataKey="name" tick={{ ...axisStyle, fontSize: 10 }} axisLine={false} tickLine={false} />
+                                    <YAxis tick={axisStyle} axisLine={false} tickLine={false} allowDecimals={false} />
+                                    <Tooltip content={<DashTooltip />} />
+                                    <Bar dataKey="count" name="Books" radius={[6, 6, 0, 0]}>
+                                        {stockData.map((e, i) => <Cell key={i} fill={e.fill} />)}
+                                    </Bar>
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+                </div>
+
+                {/* ── Books per Publisher + Books per Category ── */}
+                <div className="row g-3 mb-3">
+                    <div className="col-12 col-xl-7">
+                        <div className="panel h-100">
+                            <div className="panel-header">
+                                <div>
+                                    <h2 className="h5 mb-1 section-title">
+                                        <i className="bi bi-building" aria-hidden="true"></i>
+                                        <span>Books per Publisher</span>
+                                    </h2>
+                                    <p className="text-muted mb-0">Top 6 publishers by count</p>
+                                </div>
+                                <Link to="/publisher" className="btn btn-light btn-sm">View all</Link>
+                            </div>
+                            {booksPerPublisher.length === 0
+                                ? <p className="text-muted text-center py-4">No book data yet.</p>
+                                : <ResponsiveContainer width="100%" height={220}>
+                                    <BarChart data={booksPerPublisher} margin={{ top: 10, right: 10, left: 0, bottom: 44 }} barSize={32}>
+                                        <CartesianGrid {...gridStyle} />
+                                        <XAxis dataKey="name" tick={{ ...axisStyle, fontSize: 10 }} axisLine={false} tickLine={false}
+                                            angle={-25} textAnchor="end" interval={0} />
+                                        <YAxis tick={axisStyle} axisLine={false} tickLine={false} allowDecimals={false} />
+                                        <Tooltip content={<DashTooltip />} />
+                                        <Bar dataKey="count" name="Books" fill="#fd7e14" radius={[6, 6, 0, 0]} />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            }
+                        </div>
+                    </div>
+
+                    <div className="col-12 col-xl-5">
+                        <div className="panel h-100">
+                            <div className="panel-header">
+                                <div>
+                                    <h2 className="h5 mb-1 section-title">
+                                        <i className="bi bi-layer-backward" aria-hidden="true"></i>
+                                        <span>Books per Category</span>
+                                    </h2>
+                                    <p className="text-muted mb-0">Category distribution</p>
+                                </div>
+                                <Link to="/category" className="btn btn-light btn-sm">View all</Link>
+                            </div>
+                            {booksPerCategory.length === 0
+                                ? <p className="text-muted text-center py-4">No book data yet.</p>
+                                : <ResponsiveContainer width="100%" height={220}>
+                                    <PieChart>
+                                        <Pie data={booksPerCategory} dataKey="count" nameKey="name"
+                                            cx="50%" cy="50%" innerRadius={45} outerRadius={72}
+                                            paddingAngle={3} strokeWidth={0}>
+                                            {booksPerCategory.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                                        </Pie>
+                                        <Tooltip content={<DashTooltip />} />
+                                        <Legend iconType="circle" iconSize={8}
+                                            formatter={v => <span style={{ fontSize: 11, color: "var(--bs-secondary-color)" }}>{v}</span>} />
+                                    </PieChart>
+                                </ResponsiveContainer>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                {/* ── Content breakdown ── */}
+                <div className="row g-3 mb-3">
+                    <div className="col-12">
+                        <div className="panel">
+                            <div className="panel-header">
+                                <div>
+                                    <h2 className="h5 mb-1 section-title">
+                                        <i className="bi bi-bar-chart" aria-hidden="true"></i>
+                                        <span>Content Breakdown</span>
+                                    </h2>
+                                    <p className="text-muted mb-0">Records per section</p>
+                                </div>
+                            </div>
+                            <div className="d-flex flex-column gap-2 mt-3">
+                                {contentBars.map(b => (
+                                    <div key={b.label} className="d-flex align-items-center gap-2">
+                                        <Link to={b.to} style={{ width: 86, fontSize: 12, color: "var(--bs-secondary-color)", textDecoration: "none", flexShrink: 0 }}>
+                                            {b.label}
+                                        </Link>
+                                        <div className="flex-grow-1" style={{ height: 8, background: "var(--bs-secondary-bg)", borderRadius: 99, overflow: "hidden" }}>
+                                            <div style={{ height: "100%", width: `${Math.round((b.count / maxBar) * 100)}%`, background: b.color, borderRadius: 99, transition: "width .5s ease" }} />
+                                        </div>
+                                        <span style={{ fontSize: 12, fontWeight: 600, minWidth: 20, textAlign: "right" }}>{b.count}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* ── Testimonial status ── */}
+                <div className="row g-3 mb-3">
+                    <div className="col-12 col-xl-6">
+                        <div className="panel h-100">
+                            <div className="panel-header">
+                                <div>
+                                    <h2 className="h5 mb-1 section-title">
+                                        <i className="bi bi-chat-quote" aria-hidden="true"></i>
+                                        <span>Testimonial Status</span>
+                                    </h2>
+                                    <p className="text-muted mb-0">Approved vs pending</p>
+                                </div>
+                                <Link to="/testimonial" className="btn btn-light btn-sm">View all</Link>
+                            </div>
+                            <ResponsiveContainer width="100%" height={200}>
+                                <PieChart>
+                                    <Pie data={[
+                                        { name: "Approved", value: approvedTestimonials, fill: "#198754" },
+                                        { name: "Pending",  value: pendingTestimonials,  fill: "#ffc107" },
+                                    ].filter(d => d.value > 0)} dataKey="value" nameKey="name"
+                                        cx="50%" cy="50%" innerRadius={50} outerRadius={78}
+                                        paddingAngle={3} strokeWidth={0}>
+                                        {[{ fill: "#198754" }, { fill: "#ffc107" }].map((e, i) => <Cell key={i} fill={e.fill} />)}
+                                    </Pie>
+                                    <Tooltip content={<DashTooltip />} />
+                                    <Legend iconType="circle" iconSize={8}
+                                        formatter={v => <span style={{ fontSize: 11, color: "var(--bs-secondary-color)" }}>{v}</span>} />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+
+                    {/* ── Recent Messages ── */}
+                    <div className="col-12 col-xl-6">
+                        <div className="panel h-100">
+                            <div className="panel-header">
+                                <div>
+                                    <h2 className="h5 mb-1 section-title">
+                                        <i className="bi bi-headset" aria-hidden="true"></i>
+                                        <span>Recent Messages</span>
+                                    </h2>
+                                    <p className="text-muted mb-0">Latest contact queries</p>
+                                </div>
+                                <Link to="/contactUs" className="btn btn-light btn-sm">View all</Link>
+                            </div>
+                            <div className="table-responsive mt-2">
+                                <table className="table align-middle mb-0" style={{ fontSize: 13 }}>
+                                    <thead>
+                                        <tr><th>Name</th><th>Email</th><th>Status</th></tr>
+                                    </thead>
+                                    <tbody>
+                                        {D.contacts.slice(0, 5).map((c, i) => (
+                                            <tr key={i}>
+                                                <td className="fw-semibold">{c.name || "—"}</td>
+                                                <td className="text-muted">{c.email || "—"}</td>
+                                                <td>
+                                                    <span className={`badge ${c.active ? "text-bg-warning" : "text-bg-success"}`}>
+                                                        {c.active ? "Unread" : "Read"}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* ── Recent Orders (rich table) ── */}
+                <div className="row g-3 mb-3">
+                    <div className="col-12">
+                        <div className="panel">
+                            <div className="panel-header">
+                                <div>
+                                    <h2 className="h5 mb-1 section-title">
+                                        <i className="bi bi-receipt" aria-hidden="true"></i>
+                                        <span>Recent Orders</span>
+                                    </h2>
+                                    <p className="text-muted mb-0">Latest checkout records, sorted by date</p>
+                                </div>
+                                <Link to="/checkout" className="btn btn-light btn-sm">View all</Link>
+                            </div>
+                            <div className="table-responsive mt-2">
+                                <table className="table align-middle mb-0" style={{ fontSize: 13 }}>
+                                    <thead>
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Customer</th>
+                                            <th>Pay Mode</th>
+                                            <th>Subtotal</th>
+                                            <th>Shipping</th>
+                                            <th>Total</th>
+                                            <th>Order Status</th>
+                                            <th>Payment</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {recentOrders.map((o, i) => {
+                                            const s = orderBadge(o.orderStatus);
+                                            return (
+                                                <tr key={i}>
+                                                    <td className="text-muted" style={{ fontSize: 11 }}>#{i + 1}</td>
+                                                    <td className="fw-semibold">{o.user?.name || o.user?.username || "—"}</td>
+                                                    <td className="text-muted">{o.paymentMode || "COD"}</td>
+                                                    <td className="text-muted">{fmt(o.subtotal || 0)}</td>
+                                                    <td className="text-muted">{fmt(o.shipping || 0)}</td>
+                                                    <td className="fw-semibold">{fmt(o.total || 0)}</td>
+                                                    <td><span className={s.cls}>{s.label}</span></td>
+                                                    <td><span className={payBadge(o.paymentStatus)}>{o.paymentStatus || "Pending"}</span></td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* ── Low Stock Alert + Quick Actions ── */}
+                <div className="row g-3 mb-3">
+                    <div className="col-12 col-xl-7">
+                        <div className="panel">
+                            <div className="panel-header">
+                                <div>
+                                    <h2 className="h5 mb-1 section-title">
+                                        <i className="bi bi-exclamation-triangle" aria-hidden="true"></i>
+                                        <span>Low Stock Alert</span>
+                                    </h2>
+                                    <p className="text-muted mb-0">In-stock books with ≤ 10 units remaining</p>
+                                </div>
+                                <Link to="/book" className="btn btn-light btn-sm">View all</Link>
+                            </div>
+                            {lowStockBooks.length === 0
+                                ? <p className="text-muted text-center py-4">🎉 All books are well stocked.</p>
+                                : <div className="table-responsive mt-2">
+                                    <table className="table align-middle mb-0" style={{ fontSize: 13 }}>
+                                        <thead>
+                                            <tr><th>Title</th><th>Publisher</th><th>Category</th><th>Price</th><th>Qty Left</th></tr>
+                                        </thead>
+                                        <tbody>
+                                            {lowStockBooks.map((b, i) => (
+                                                <tr key={i}>
+                                                    <td className="fw-semibold">{b.title}</td>
+                                                    <td className="text-muted">{b.publisher?.name || "—"}</td>
+                                                    <td className="text-muted">{b.category?.name || "—"}</td>
+                                                    <td className="text-muted">{fmt(b.finalPrice || 0)}</td>
+                                                    <td>
+                                                        <span className="badge text-bg-warning">{b.stockQuantity} left</span>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <div className="col-12 col-xl-5">
+                        <div className="panel h-100">
+                            <div className="panel-header">
+                                <div>
+                                    <h2 className="h5 mb-1 section-title">
+                                        <i className="bi bi-lightning" aria-hidden="true"></i>
+                                        <span>Quick Actions</span>
+                                    </h2>
+                                </div>
+                            </div>
+
+                            <div className="row g-2">
+                                {quickActions.map((q, i) => (
+                                    <div key={i} className="col-6">
+                                        <Link to={q.to} className="d-flex align-items-center gap-2 p-2 rounded-2 text-decoration-none"
+                                            style={{
+                                                background: "var(--bs-secondary-bg)",
+                                                border: "1px solid var(--bs-border-color)",
+                                                borderLeft: `3px solid ${q.color}`,
+                                                fontSize: 12, fontWeight: 600,
+                                                color: "var(--bs-secondary-color)",
+                                                transition: "background .2s",
+                                            }}>
+                                            <i className={`bi ${q.icon}`} style={{ color: q.color, fontSize: 14 }}></i>
+                                            {q.label}
+                                        </Link>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <div className="mt-3 pt-3" style={{ borderTop: "1px solid var(--bs-border-color)" }}>
+                                {[
+                                    { icon: "bi-envelope-paper", color: "text-primary",   label: "Newsletter Subscribers", val: D.newsletters.length,   to: "/newsletter"  },
+                                    { icon: "bi-star",           color: "text-warning",   label: "Testimonials",          val: D.testimonials.length,   to: "/testimonial" },
+                                    { icon: "bi-cart3",          color: "text-success",   label: "Active Carts",          val: D.carts.length,           to: "/cart"        },
+                                    { icon: "bi-heart",          color: "text-danger",    label: "Wishlist Items",        val: D.wishlists.length,       to: "/wishlist"    },
+                                ].map((r, i) => (
+                                    <div key={i} className="d-flex justify-content-between align-items-center mb-2">
+                                        <span className={`text-muted small d-flex align-items-center gap-2`}>
+                                            <i className={`bi ${r.icon} ${r.color}`}></i> {r.label}
+                                        </span>
+                                        <Link to={r.to} className="fw-bold small text-decoration-none">{r.val}</Link>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
     );
 }

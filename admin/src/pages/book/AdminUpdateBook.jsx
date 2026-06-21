@@ -1,16 +1,41 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
+import ReactQuill from "react-quill-new"
+import "react-quill-new/dist/quill.snow.css"
 
 import formValidator from '../../FormValidators/formValidator'
 import imageValidator from '../../FormValidators/imageValidator'
 
-import { updateBook, getBook } from "../../Redux/ActionCreartors/BookActionCreators"
-import { getCategory } from "../../Redux/ActionCreartors/CategoryActionCreators"
-import { getSubcategory } from "../../Redux/ActionCreartors/SubcategoryActionCreators"
-import { getPublisher } from "../../Redux/ActionCreartors/PublisherActionCreators"
+import { updateBook, getBook } from "../../Redux/ActionCreators/BookActionCreators"
+import { getCategory } from "../../Redux/ActionCreators/CategoryActionCreators"
+import { getSubcategory } from "../../Redux/ActionCreators/SubcategoryActionCreators"
+import { getPublisher } from "../../Redux/ActionCreators/PublisherActionCreators"
 
 const FORMAT_OPTIONS = ["Paperback", "Hardcover", "Ebook"]
+
+const checklist = [
+    { dot: "bg-success", title: "Review details",  body: "Confirm title, author, category, and publisher are correct." },
+    { dot: "bg-primary", title: "Check pricing",    body: "Verify format pricing and stock are up to date."             },
+    { dot: "bg-warning", title: "Manage files",     body: "Replace cover, gallery images, or the ebook file as needed." },
+]
+
+const quillModules = {
+    toolbar: [
+        ["bold", "italic", "underline", "strike"],
+        [{ list: "ordered" }, { list: "bullet" }],
+        ["link"],
+        ["clean"],
+    ],
+}
+
+// ReactQuill's `style` prop only reaches its outer wrapper div, not the
+// actual editable area (.ql-editor), so editor height has to be set via CSS.
+const descriptionEditorStyles = `
+    .book-description-editor .ql-editor {
+        min-height: 150px;
+    }
+`
 
 function computeFinalPrice(price, discount) {
     const p = parseFloat(price) || 0
@@ -41,9 +66,6 @@ export default function AdminUpdateBook() {
     const { _id }  = useParams()
     const navigate = useNavigate()
     const dispatch = useDispatch()
-    const refdiv   = useRef(null)
-    const rteRef   = useRef(null)
-    const rteReady = useRef(false)
 
     const BookStateData        = useSelector(state => state.BookStateData)
     const CategoryStateData    = useSelector(state => state.CategoryStateData)
@@ -66,6 +88,7 @@ export default function AdminUpdateBook() {
         pic:           "",
         images:        [],
         ebookFile:     "",
+        description:   "",
         formatPricing: {
             Paperback: { selected: false, price: "", discount: 0  },
             Hardcover: { selected: false, price: "", discount: 0  },
@@ -123,7 +146,7 @@ export default function AdminUpdateBook() {
             return
         }
 
-        // ── FIX: handle ebookFile separately — skip imageValidator for PDFs ──
+        // Handle ebookFile separately — skip imageValidator for PDFs
         if (name === "ebookFile") {
             const file = e.target.files?.[0] || ""
             setData(old => ({ ...old, ebookFile: file }))
@@ -142,6 +165,10 @@ export default function AdminUpdateBook() {
             ...old,
             [name]: ["active", "featured"].includes(name) ? (value === "1") : value,
         }))
+    }
+
+    function getDescriptionData(value) {
+        setData(old => ({ ...old, description: value }))
     }
 
     function postSubmit(e) {
@@ -214,7 +241,7 @@ export default function AdminUpdateBook() {
         formData.append("stock",         data.stock)
         formData.append("featured",      data.featured)
         formData.append("active",        data.active)
-        formData.append("description",   rteRef.current ? rteRef.current.getHTMLCode() : "")
+        formData.append("description",   data.description)
 
         // Cover image — only append if a new file was chosen
         if (data.pic && typeof data.pic !== "string") {
@@ -224,7 +251,7 @@ export default function AdminUpdateBook() {
         // Additional images — only append if new files were chosen
         data.images.forEach(img => formData.append("images", img))
 
-        // ── FIX: only append ebookFile when it's an actual new File object ────
+        // Only append ebookFile when it's an actual new File object
         // Do NOT append the old string path — backend keeps existing if absent
         if (data.formatPricing.Ebook.selected && data.ebookFile && typeof data.ebookFile !== "string") {
             formData.append("ebookFile", data.ebookFile)
@@ -233,27 +260,6 @@ export default function AdminUpdateBook() {
         dispatch(updateBook(formData))
         navigate("/book")
     }
-
-    function initRTE(html = "") {
-        if (!refdiv.current || !window.RichTextEditor) return
-        if (rteRef.current && typeof rteRef.current.destroy === "function") {
-            rteRef.current.destroy()
-            rteRef.current = null
-        }
-        rteRef.current = new window.RichTextEditor(refdiv.current)
-        rteRef.current.setHTMLCode(html)
-        rteReady.current = true
-    }
-
-    useEffect(() => {
-        return () => {
-            if (rteRef.current && typeof rteRef.current.destroy === "function") {
-                rteRef.current.destroy()
-            }
-            rteRef.current   = null
-            rteReady.current = false
-        }
-    }, [])
 
     useEffect(() => { dispatch(getCategory()) },    [CategoryStateData.length])
     useEffect(() => { dispatch(getSubcategory()) }, [SubcategoryStateData.length])
@@ -268,303 +274,350 @@ export default function AdminUpdateBook() {
                     ...item,
                     images:        [],
                     ebookFile:     item.ebookFile || "",   // keep the existing path as a string
+                    description:   item.description || "",
                     formatPricing: buildFormatPricingState(item.formatPricing || []),
                 })
                 setOldPic(item.pic || "")
                 setOldImages(item.images || [])
-                setTimeout(() => initRTE(item.description || ""), 0)
             }
         }
     }, [BookStateData.length])
 
     return (
-        <div>
-            <h5 className="bg-primary text-light text-center p-2">
-                Update Book
-                <Link to="/book"><i className="fa fa-arrow-left text-light float-end pt-1"></i></Link>
-            </h5>
+        <main className="dashboard-content">
+            <style>{descriptionEditorStyles}</style>
+            <div className="container-fluid px-3 px-lg-4 py-4">
 
-            <div className="card mt-3 shadow-sm p-4">
-                <form onSubmit={postSubmit}>
-
-                    {/* Title */}
-                    <div className="mb-3">
-                        <label>Title*</label>
-                        <input type="text" name="title" value={data.title} onChange={getInputData} placeholder="Book Title"
-                            className={`form-control border-3 ${show && error.title ? 'border-danger' : 'border-primary'}`} />
-                        {show && error.title && <p className="text-danger text-capitalize">{error.title}</p>}
-                    </div>
-
-                    <div className="row">
-                        <div className="col-md-6 mb-3">
-                            <label>Author*</label>
-                            <input type="text" name="author" value={data.author} onChange={getInputData} placeholder="Author Name"
-                                className={`form-control border-3 ${show && error.author ? 'border-danger' : 'border-primary'}`} />
-                            {show && error.author && <p className="text-danger text-capitalize">{error.author}</p>}
-                        </div>
-                        <div className="col-md-6 mb-3">
-                            <label>ISBN*</label>
-                            <input type="text" name="isbn" value={data.isbn} onChange={getInputData} placeholder="ISBN"
-                                className={`form-control border-3 ${show && error.isbn ? 'border-danger' : 'border-primary'}`} />
-                            {show && error.isbn && <p className="text-danger text-capitalize">{error.isbn}</p>}
+                <div className="page-heading">
+                    <div className="page-heading-copy">
+                        <span className="page-icon">
+                            <i className="bi bi-pencil-square" aria-hidden="true"></i>
+                        </span>
+                        <div>
+                            <p className="eyebrow mb-1">Management</p>
+                            <h1 className="h3 mb-1">Update Book</h1>
+                            <p className="text-muted mb-0">Edit details, pricing, files, and status.</p>
                         </div>
                     </div>
-
-                    <div className="row">
-                        <div className="col-lg-3 col-md-6 mb-3">
-                            <label>Category*</label>
-                            <select name="category"
-                                value={typeof data.category === "object" ? data.category._id : data.category}
-                                onChange={getInputData} className="form-select border-3 border-primary">
-                                {CategoryStateData.filter(x => x.active).map(item => (
-                                    <option key={item._id} value={item._id}>{item.name}</option>
-                                ))}
-                            </select>
-                        </div>
-                        <div className="col-lg-3 col-md-6 mb-3">
-                            <label>Subcategory*</label>
-                            <select name="subcategory"
-                                value={typeof data.subcategory === "object" ? data.subcategory._id : data.subcategory}
-                                onChange={getInputData} className="form-select border-3 border-primary">
-                                {SubcategoryStateData.filter(x => x.active).map(item => (
-                                    <option key={item._id} value={item._id}>{item.name}</option>
-                                ))}
-                            </select>
-                        </div>
-                        <div className="col-lg-3 col-md-6 mb-3">
-                            <label>Publisher*</label>
-                            <select name="publisher"
-                                value={typeof data.publisher === "object" ? data.publisher._id : data.publisher}
-                                onChange={getInputData} className="form-select border-3 border-primary">
-                                {PublisherStateData.filter(x => x.active).map(item => (
-                                    <option key={item._id} value={item._id}>{item.name}</option>
-                                ))}
-                            </select>
-                        </div>
-                        <div className="col-lg-3 col-md-6 mb-3">
-                            <label>Language*</label>
-                            <input type="text" name="language" value={data.language} onChange={getInputData} placeholder="e.g. English"
-                                className={`form-control border-3 ${show && error.language ? 'border-danger' : 'border-primary'}`} />
-                            {show && error.language && <p className="text-danger text-capitalize">{error.language}</p>}
-                        </div>
+                    <div className="heading-actions">
+                        <Link className="btn btn-outline-secondary btn-sm" to="/book">
+                            <i className="bi bi-arrow-left" aria-hidden="true"></i> Back to Books
+                        </Link>
                     </div>
+                </div>
 
-                    <div className="row">
-                        <div className="col-md-4 mb-3">
-                            <label>Pages*</label>
-                            <input type="number" name="pages" value={data.pages} onChange={getInputData} placeholder="Number of Pages"
-                                className={`form-control border-3 ${show && error.pages ? 'border-danger' : 'border-primary'}`} />
-                            {show && error.pages && <p className="text-danger text-capitalize">{error.pages}</p>}
-                        </div>
-                        <div className="col-md-4 mb-3">
-                            <label>Published Date</label>
-                            <input type="date" name="publishedDate"
-                                value={data.publishedDate ? new Date(data.publishedDate).toISOString().split("T")[0] : ""}
-                                onChange={getInputData} className="form-control border-3 border-primary" />
-                        </div>
-                        <div className="col-md-4 mb-3">
-                            <label>Stock*</label>
-                            <input type="number" name="stock" value={data.stock} onChange={getInputData} placeholder="Available Quantity"
-                                className={`form-control border-3 ${show && error.stock ? 'border-danger' : 'border-primary'}`} />
-                            {show && error.stock && <p className="text-danger text-capitalize">{error.stock}</p>}
-                        </div>
+                {show && (
+                    <div className="alert alert-danger alert-dismissible" role="alert">
+                        {Object.values(error).find((x) => x !== "")}
+                        <button type="button" className="btn-close" onClick={() => setShow(false)} aria-label="Close" />
                     </div>
+                )}
 
-                    {/* ── Per-Format Pricing ──────────────────────────────────── */}
-                    <div className="mb-3">
-                        <label className="fw-semibold mb-2 d-block">
-                            Format &amp; Pricing*
-                            <span className="text-muted fw-normal small ms-2">Select formats and set individual prices</span>
-                        </label>
-                        {show && error.formatPricing && (
-                            <p className="text-danger text-capitalize">{error.formatPricing}</p>
-                        )}
-                        <div className="row g-3">
-                            {FORMAT_OPTIONS.map(fmt => {
-                                const fp = data.formatPricing[fmt]
-                                const finalPrice = fp.selected && fp.price
-                                    ? computeFinalPrice(fp.price, fp.discount)
-                                    : null
-                                const badgeColor = fmt === "Paperback" ? "#0d6efd" : fmt === "Hardcover" ? "#6f42c1" : "#198754"
-                                return (
-                                    <div key={fmt} className="col-md-4">
-                                        <div className={`card border-2 h-100 ${fp.selected ? 'border-primary' : 'border-secondary'}`}
-                                            style={{ opacity: fp.selected ? 1 : 0.6 }}>
-                                            <div className="card-header d-flex align-items-center gap-2 py-2"
-                                                style={{ backgroundColor: fp.selected ? badgeColor + "18" : "#f8f9fa" }}>
-                                                <input
-                                                    className="form-check-input mt-0"
-                                                    type="checkbox"
-                                                    id={`update-fmt-${fmt}`}
-                                                    checked={fp.selected}
-                                                    onChange={() => toggleFormat(fmt)}
-                                                />
-                                                <label htmlFor={`update-fmt-${fmt}`}
-                                                    className="form-check-label fw-semibold mb-0"
-                                                    style={{ cursor: "pointer", color: badgeColor }}>
-                                                    {fmt}
-                                                </label>
-                                                {fmt === "Ebook" && (
-                                                    <span className="badge bg-success ms-auto small">Higher discount</span>
-                                                )}
-                                            </div>
-                                            <div className="card-body py-2">
-                                                <div className="mb-2">
-                                                    <label className="form-label small mb-1">
-                                                        Price (₹){fp.selected && "*"}
-                                                    </label>
-                                                    <input
-                                                        type="number"
-                                                        min="0"
-                                                        placeholder="0.00"
-                                                        disabled={!fp.selected}
-                                                        value={fp.price}
-                                                        onChange={e => updateFormatField(fmt, "price", e.target.value)}
-                                                        className="form-control form-control-sm border-2"
-                                                    />
-                                                </div>
-                                                <div className="mb-2">
-                                                    <label className="form-label small mb-1">Discount (%)</label>
-                                                    <input
-                                                        type="number"
-                                                        min="0"
-                                                        max="100"
-                                                        placeholder="0"
-                                                        disabled={!fp.selected}
-                                                        value={fp.discount}
-                                                        onChange={e => updateFormatField(fmt, "discount", e.target.value)}
-                                                        className="form-control form-control-sm border-2"
-                                                    />
-                                                </div>
-                                                {fp.selected && fp.price && (
-                                                    <div className="text-end">
-                                                        <span className="text-muted small text-decoration-line-through me-1">
-                                                            ₹{parseFloat(fp.price).toFixed(2)}
-                                                        </span>
-                                                        <span className="fw-bold" style={{ color: badgeColor }}>
-                                                            ₹{finalPrice.toFixed(2)}
-                                                        </span>
+                <section className="row g-3">
+                    <div className="col-12 col-xl-8">
+                        <div className="panel">
+                            <div className="panel-header">
+                                <div>
+                                    <h2 className="h5 mb-1 section-title">
+                                        <i className="bi bi-book" aria-hidden="true"></i>
+                                        <span>Book Information</span>
+                                    </h2>
+                                    <p className="text-muted mb-0">Update the details for this book.</p>
+                                </div>
+                            </div>
+
+                            <div className="row g-3">
+                                <div className="col-12">
+                                    <label className="form-label" htmlFor="title">Title</label>
+                                    <input id="title" className={`form-control ${show && error.title ? "is-invalid" : ""}`}
+                                        type="text" name="title" value={data.title} onChange={getInputData} placeholder="Book Title" />
+                                    {show && error.title && <div className="text-danger small mt-1">{error.title}</div>}
+                                </div>
+
+                                <div className="col-md-6">
+                                    <label className="form-label" htmlFor="author">Author</label>
+                                    <input id="author" className={`form-control ${show && error.author ? "is-invalid" : ""}`}
+                                        type="text" name="author" value={data.author} onChange={getInputData} placeholder="Author Name" />
+                                    {show && error.author && <div className="text-danger small mt-1">{error.author}</div>}
+                                </div>
+                                <div className="col-md-6">
+                                    <label className="form-label" htmlFor="isbn">ISBN</label>
+                                    <input id="isbn" className={`form-control ${show && error.isbn ? "is-invalid" : ""}`}
+                                        type="text" name="isbn" value={data.isbn} onChange={getInputData} placeholder="ISBN" />
+                                    {show && error.isbn && <div className="text-danger small mt-1">{error.isbn}</div>}
+                                </div>
+
+                                <div className="col-lg-3 col-md-6">
+                                    <label className="form-label" htmlFor="category">Category</label>
+                                    <select id="category" className="form-select" name="category"
+                                        value={typeof data.category === "object" ? data.category._id : data.category}
+                                        onChange={getInputData}>
+                                        {CategoryStateData.filter(x => x.active).map(item => (
+                                            <option key={item._id} value={item._id}>{item.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="col-lg-3 col-md-6">
+                                    <label className="form-label" htmlFor="subcategory">Subcategory</label>
+                                    <select id="subcategory" className="form-select" name="subcategory"
+                                        value={typeof data.subcategory === "object" ? data.subcategory._id : data.subcategory}
+                                        onChange={getInputData}>
+                                        {SubcategoryStateData.filter(x => x.active).map(item => (
+                                            <option key={item._id} value={item._id}>{item.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="col-lg-3 col-md-6">
+                                    <label className="form-label" htmlFor="publisher">Publisher</label>
+                                    <select id="publisher" className="form-select" name="publisher"
+                                        value={typeof data.publisher === "object" ? data.publisher._id : data.publisher}
+                                        onChange={getInputData}>
+                                        {PublisherStateData.filter(x => x.active).map(item => (
+                                            <option key={item._id} value={item._id}>{item.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="col-lg-3 col-md-6">
+                                    <label className="form-label" htmlFor="language">Language</label>
+                                    <input id="language" className={`form-control ${show && error.language ? "is-invalid" : ""}`}
+                                        type="text" name="language" value={data.language} onChange={getInputData} placeholder="e.g. English" />
+                                    {show && error.language && <div className="text-danger small mt-1">{error.language}</div>}
+                                </div>
+
+                                <div className="col-md-4">
+                                    <label className="form-label" htmlFor="pages">Pages</label>
+                                    <input id="pages" className={`form-control ${show && error.pages ? "is-invalid" : ""}`}
+                                        type="number" name="pages" value={data.pages} onChange={getInputData} placeholder="Number of Pages" />
+                                    {show && error.pages && <div className="text-danger small mt-1">{error.pages}</div>}
+                                </div>
+                                <div className="col-md-4">
+                                    <label className="form-label" htmlFor="publishedDate">Published Date</label>
+                                    <input id="publishedDate" className="form-control" type="date" name="publishedDate"
+                                        value={data.publishedDate ? new Date(data.publishedDate).toISOString().split("T")[0] : ""}
+                                        onChange={getInputData} />
+                                </div>
+                                <div className="col-md-4">
+                                    <label className="form-label" htmlFor="stock">Stock</label>
+                                    <input id="stock" className={`form-control ${show && error.stock ? "is-invalid" : ""}`}
+                                        type="number" name="stock" value={data.stock} onChange={getInputData} placeholder="Available Quantity" />
+                                    {show && error.stock && <div className="text-danger small mt-1">{error.stock}</div>}
+                                </div>
+
+                                {/* ── Per-Format Pricing ──────────────────────────────────── */}
+                                <div className="col-12">
+                                    <label className="form-label fw-semibold mb-2 d-block">
+                                        Format &amp; Pricing
+                                        <span className="text-muted fw-normal small ms-2">Select formats and set individual prices</span>
+                                    </label>
+                                    {show && error.formatPricing && (
+                                        <div className="text-danger small mb-2">{error.formatPricing}</div>
+                                    )}
+                                    <div className="row g-3">
+                                        {FORMAT_OPTIONS.map(fmt => {
+                                            const fp = data.formatPricing[fmt]
+                                            const finalPrice = fp.selected && fp.price
+                                                ? computeFinalPrice(fp.price, fp.discount)
+                                                : null
+                                            const badgeColor = fmt === "Paperback" ? "#0d6efd" : fmt === "Hardcover" ? "#6f42c1" : "#198754"
+                                            return (
+                                                <div key={fmt} className="col-md-4">
+                                                    <div className={`card border-2 h-100 ${fp.selected ? 'border-primary' : 'border-secondary'}`}
+                                                        style={{ opacity: fp.selected ? 1 : 0.6 }}>
+                                                        <div className="card-header d-flex align-items-center gap-2 py-2"
+                                                            style={{ backgroundColor: fp.selected ? badgeColor + "18" : "#f8f9fa" }}>
+                                                            <input
+                                                                className="form-check-input mt-0"
+                                                                type="checkbox"
+                                                                id={`update-fmt-${fmt}`}
+                                                                checked={fp.selected}
+                                                                onChange={() => toggleFormat(fmt)}
+                                                            />
+                                                            <label htmlFor={`update-fmt-${fmt}`}
+                                                                className="form-check-label fw-semibold mb-0"
+                                                                style={{ cursor: "pointer", color: badgeColor }}>
+                                                                {fmt}
+                                                            </label>
+                                                            {fmt === "Ebook" && (
+                                                                <span className="badge bg-success ms-auto small">Higher discount</span>
+                                                            )}
+                                                        </div>
+                                                        <div className="card-body py-2">
+                                                            <div className="mb-2">
+                                                                <label className="form-label small mb-1">
+                                                                    Price (₹){fp.selected && "*"}
+                                                                </label>
+                                                                <input
+                                                                    type="number"
+                                                                    min="0"
+                                                                    placeholder="0.00"
+                                                                    disabled={!fp.selected}
+                                                                    value={fp.price}
+                                                                    onChange={e => updateFormatField(fmt, "price", e.target.value)}
+                                                                    className="form-control form-control-sm border-2"
+                                                                />
+                                                            </div>
+                                                            <div className="mb-2">
+                                                                <label className="form-label small mb-1">Discount (%)</label>
+                                                                <input
+                                                                    type="number"
+                                                                    min="0"
+                                                                    max="100"
+                                                                    placeholder="0"
+                                                                    disabled={!fp.selected}
+                                                                    value={fp.discount}
+                                                                    onChange={e => updateFormatField(fmt, "discount", e.target.value)}
+                                                                    className="form-control form-control-sm border-2"
+                                                                />
+                                                            </div>
+                                                            {fp.selected && fp.price && (
+                                                                <div className="text-end">
+                                                                    <span className="text-muted small text-decoration-line-through me-1">
+                                                                        ₹{parseFloat(fp.price).toFixed(2)}
+                                                                    </span>
+                                                                    <span className="fw-bold" style={{ color: badgeColor }}>
+                                                                        ₹{finalPrice.toFixed(2)}
+                                                                    </span>
+                                                                </div>
+                                                            )}
+                                                        </div>
                                                     </div>
-                                                )}
+                                                </div>
+                                            )
+                                        })}
+                                    </div>
+                                </div>
+
+                                <div className="col-12">
+                                    <label className="form-label" htmlFor="description">Description</label>
+                                    <ReactQuill
+                                        id="description"
+                                        theme="snow"
+                                        value={data.description}
+                                        onChange={getDescriptionData}
+                                        modules={quillModules}
+                                        className="book-description-editor"
+                                        placeholder="Write a description for this book..."
+                                    />
+                                </div>
+
+                                <div className="col-md-6">
+                                    <label className="form-label" htmlFor="pic">
+                                        Cover Image <span className="text-muted fw-normal">(leave blank to keep existing)</span>
+                                    </label>
+                                    <input id="pic" className="form-control" type="file" name="pic" onChange={getInputData} accept="image/*" />
+                                    {data.pic && typeof data.pic !== "string" && (
+                                        <div className="mt-2">
+                                            <small className="text-muted">New cover:</small><br />
+                                            <img src={URL.createObjectURL(data.pic)} height={80} alt="new cover" className="rounded border mt-1" />
+                                        </div>
+                                    )}
+                                    {oldPic && (
+                                        <div className="mt-2">
+                                            <small className="text-muted">Current cover:</small><br />
+                                            <img src={oldPic} height={80} alt="current cover" className="rounded border mt-1" />
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="col-md-6">
+                                    <label className="form-label" htmlFor="images">
+                                        Additional Images <span className="text-muted fw-normal">(leave blank to keep existing)</span>
+                                    </label>
+                                    <input id="images" className="form-control" type="file" name="images"
+                                        onChange={getInputData} accept="image/*" multiple />
+                                    {data.images.length > 0 && (
+                                        <div className="mt-2">
+                                            <small className="text-muted">New images:</small>
+                                            <div className="d-flex flex-wrap gap-2 mt-1">
+                                                {data.images.map((img, i) => (
+                                                    <img key={i} src={URL.createObjectURL(img)} height={60} width={60}
+                                                        alt={`new-${i}`} className="rounded border" style={{ objectFit: "cover" }} />
+                                                ))}
                                             </div>
                                         </div>
+                                    )}
+                                    {oldImages.length > 0 && (
+                                        <div className="mt-2">
+                                            <small className="text-muted">Current images:</small>
+                                            <div className="d-flex flex-wrap gap-2 mt-1">
+                                                {oldImages.map((img, i) => (
+                                                    <img key={i} src={img} height={60} width={60}
+                                                        alt={`existing-${i}`} className="rounded border" style={{ objectFit: "cover" }} />
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {data.formatPricing.Ebook.selected && (
+                                    <div className="col-md-6">
+                                        <label className="form-label" htmlFor="ebookFile">
+                                            Ebook PDF <span className="text-muted fw-normal">(leave blank to keep existing)</span>
+                                        </label>
+                                        <input id="ebookFile" className="form-control" type="file" name="ebookFile"
+                                            onChange={getInputData} accept="application/pdf" />
+                                        {data.ebookFile && typeof data.ebookFile !== "string" && (
+                                            <div className="text-success small mt-1">
+                                                <i className="bi bi-check-circle me-1"></i>New file: {data.ebookFile.name}
+                                            </div>
+                                        )}
+                                        {data.ebookFile && typeof data.ebookFile === "string" && (
+                                            <div className="text-muted small mt-1">
+                                                <i className="bi bi-file-earmark-pdf me-1"></i>
+                                                Current: {data.ebookFile.split("/").pop()}
+                                            </div>
+                                        )}
                                     </div>
-                                )
-                            })}
-                        </div>
-                    </div>
-
-                    {/* Description RTE */}
-                    <div className="mb-3">
-                        <label>Description*</label>
-                        <div ref={refdiv} className="border-3 border-primary"></div>
-                    </div>
-
-                    <div className="row">
-                        {/* Cover Image */}
-                        <div className="col-md-6 mb-3">
-                            <label>Cover Image <span className="text-muted small">(leave blank to keep existing)</span></label>
-                            <input type="file" name="pic" onChange={getInputData} accept="image/*"
-                                className="form-control border-3 border-primary" />
-                            {data.pic && typeof data.pic !== "string" && (
-                                <div className="mt-2">
-                                    <small className="text-muted">New cover:</small><br />
-                                    <img src={URL.createObjectURL(data.pic)} height={80}
-                                        alt="new cover" className="rounded border mt-1" />
-                                </div>
-                            )}
-                            {oldPic && (
-                                <div className="mt-2">
-                                    <small className="text-muted">Current cover:</small><br />
-                                    <img src={oldPic}
-                                        height={80} alt="current cover" className="rounded border mt-1" />
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Additional Images */}
-                        <div className="col-md-6 mb-3">
-                            <label>Additional Images <span className="text-muted small">(leave blank to keep existing)</span></label>
-                            <input type="file" name="images" onChange={getInputData} accept="image/*" multiple
-                                className="form-control border-3 border-primary" />
-                            {data.images.length > 0 && (
-                                <div className="mt-2">
-                                    <small className="text-muted">New images:</small>
-                                    <div className="d-flex flex-wrap gap-2 mt-1">
-                                        {data.images.map((img, i) => (
-                                            <img key={i} src={URL.createObjectURL(img)}
-                                                height={60} width={60} alt={`new-${i}`}
-                                                className="rounded border object-fit-cover" />
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-                            {oldImages.length > 0 && (
-                                <div className="mt-2">
-                                    <small className="text-muted">Current images:</small>
-                                    <div className="d-flex flex-wrap gap-2 mt-1">
-                                        {oldImages.map((img, i) => (
-                                            <img key={i}
-                                                src={img}
-                                                height={60} width={60} alt={`existing-${i}`}
-                                                className="rounded border object-fit-cover" />
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Ebook PDF — only shown when Ebook format is selected */}
-                        {data.formatPricing.Ebook.selected && (
-                            <div className="col-md-6 mb-3">
-                                <label>Ebook PDF <span className="text-muted small">(leave blank to keep existing)</span></label>
-                                <input type="file" name="ebookFile" onChange={getInputData} accept="application/pdf"
-                                    className="form-control border-3 border-primary" />
-
-                                {/* Show newly selected file name */}
-                                {data.ebookFile && typeof data.ebookFile !== "string" && (
-                                    <p className="text-success small mt-1">
-                                        <i className="fa fa-check-circle me-1"></i>
-                                        New file: {data.ebookFile.name}
-                                    </p>
                                 )}
 
-                                {/* Show existing file path from DB */}
-                                {data.ebookFile && typeof data.ebookFile === "string" && (
-                                    <p className="text-muted small mt-1">
-                                        <i className="fa fa-file-pdf-o me-1"></i>
-                                        Current: {data.ebookFile.split("/").pop()}
-                                    </p>
-                                )}
+                                <div className="col-md-6">
+                                    <label className="form-label" htmlFor="featured">Featured</label>
+                                    <select id="featured" className="form-select" name="featured"
+                                        value={data.featured ? "1" : "0"} onChange={getInputData}>
+                                        <option value="0">No</option>
+                                        <option value="1">Yes</option>
+                                    </select>
+                                </div>
+                                <div className="col-md-6">
+                                    <label className="form-label" htmlFor="active">Status</label>
+                                    <select id="active" className="form-select" name="active"
+                                        value={data.active ? "1" : "0"} onChange={getInputData}>
+                                        <option value="1">Active</option>
+                                        <option value="0">Inactive</option>
+                                    </select>
+                                </div>
                             </div>
-                        )}
-                    </div>
 
-                    <div className="row">
-                        <div className="col-md-6 mb-3">
-                            <label>Featured</label>
-                            <select name="featured" value={data.featured ? "1" : "0"} onChange={getInputData}
-                                className="form-select border-3 border-primary">
-                                <option value="0">No</option>
-                                <option value="1">Yes</option>
-                            </select>
-                        </div>
-                        <div className="col-md-6 mb-3">
-                            <label>Active</label>
-                            <select name="active" value={data.active ? "1" : "0"} onChange={getInputData}
-                                className="form-select border-3 border-primary">
-                                <option value="1">Yes</option>
-                                <option value="0">No</option>
-                            </select>
+                            <div className="d-flex flex-wrap justify-content-end gap-2 mt-4">
+                                <Link className="btn btn-outline-secondary" to="/book">Cancel</Link>
+                                <button className="btn btn-primary" type="button" onClick={postSubmit}>
+                                    <i className="bi bi-check-circle" aria-hidden="true"></i> Update Book
+                                </button>
+                            </div>
                         </div>
                     </div>
 
-                    <div className="mb-3">
-                        <button type="submit" className="btn btn-primary w-100 text-light">Update</button>
+                    <div className="col-12 col-xl-4">
+                        <div className="panel h-100">
+                            <h2 className="h5 mb-3 section-title">
+                                <i className="bi bi-list-check" aria-hidden="true"></i>
+                                <span>Update Checklist</span>
+                            </h2>
+                            <div className="activity-list">
+                                {checklist.map(({ dot, title, body }) => (
+                                    <div key={title} className="activity-item">
+                                        <span className={`activity-dot ${dot}`}></span>
+                                        <div>
+                                            <p className="mb-1 fw-semibold">{title}</p>
+                                            <p className="text-muted small mb-0">{body}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
                     </div>
-
-                </form>
+                </section>
             </div>
-        </div>
+        </main>
     )
 }

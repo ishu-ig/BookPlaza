@@ -706,8 +706,8 @@
 			if (RgbToYuv(rgb)[0] >= .5) SetGradientPositionDark();
 			else SetGradientPositionLight();
 			if (e.target != null) {
-				if (e.target._id == "pnlGradient_Top") return;
-				if (e.target._id == "pnlVertical_Top") return;
+				if (e.target.id == "pnlGradient_Top") return;
+				if (e.target.id == "pnlVertical_Top") return;
 			}
 			var x;
 			var y;
